@@ -9,6 +9,7 @@ install.requirements:
 	pip install langchain
 	pip install accelerate
 	pip install optimum
+	pip install peft bitsandbytes trl
 	# BUILD_CUDA_EXT=0 pip install auto-gptq
 	CMAKE_ARGS="-DLLAMA_METAL=on" pip install llama-cpp-python
 
