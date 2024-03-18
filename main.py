@@ -5,10 +5,9 @@ from src.read_csv import ImdbReader, TrainCSV
 
 if __name__ == "__main__":
     read = ImdbReader()
-    print(read.df.head())
     model = TinyLlm()
     trained = TrainCSV(model, read.df)
-    # trained.read()
+    trained.read()
 
     story_writer = LlamaWriter(model)
     prompt = "Write a story about llamas"
