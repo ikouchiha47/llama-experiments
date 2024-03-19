@@ -74,26 +74,26 @@ class TinyLamaUniverse:
         return self
 
     def __index_parition(self, partition):
-        # db_ids = np.arange(len(partition)) + partition.index.start
-        print(partition)
+        db_ids = np.arange(len(partition))  # + partition.index.start
 
         result = partition.apply(self.cfg.format_row, axis=1)
-
-        # print("laa", result.tolist(), db_ids)
+        # result = partition.assign(text=self.cfg.format_row)
         encoded_data = self.model.encode(
             result.tolist(),
             normalize_embeddings=False,
-            # show_progress_bar=True,
+            show_progress_bar=True,
         )
-
-        # index = faiss.IndexIDMap(
-        #     faiss.IndexFlatL2(self.model.get_sentence_embedding_dimension())
-        # )
-
-        # faiss.normalize_L2(encoded_data)
-        # index.add(encoded_data)
+        #
+        index = faiss.IndexIDMap(
+            faiss.IndexFlatL2(self.model.get_sentence_embedding_dimension())
+        )
+        #
+        faiss.normalize_L2(encoded_data)
+        index.add(encoded_data, db_ids)
         # FAISS.from_documents(result.tolist(), encoded_data)
         # self.merged_index.merge_from(index, partition.index.start)
+        # result = partition
+        # print(result.head())
 
         return result
 
@@ -107,15 +107,13 @@ class TinyLamaUniverse:
         if self.merged_index is None:
             raise Exception("UninitializedIndexException")
 
-        print(self.df.head(), meta_keys)
+        # print(self.df.head(), meta_keys)
         partitions = self.df.map_partitions(
-            self.__index_parition,
-            meta=meta_keys,
-        )
+            self.__index_parition, meta={"text": "str"})
 
         # partitions.visualize()
-        partitions.head()
-        # partitions.compute()
+        # print(partitions.head())
+        partitions.compute()
 
     def read_tsv_slow(self):
         # need to handle windows-1252 encoding as well

@@ -46,7 +46,7 @@ class IPLConfig:
     }
 
     template = (
-        "Match was played between teams {team1} and {team2} at {venue}."
+        "Match was played between two teams {team1} and {team2} at {venue}."
         " {toss_won} won the toss and decided to {decision}."
         " {winner} won the match."
     )
@@ -54,7 +54,7 @@ class IPLConfig:
     def format_row(self, row):
         prompt = PromptTemplate.from_template(self.template)
 
-        return prompt.format(
+        data = prompt.format(
             team1=row.team1,
             team2=row.team2,
             venue=row.venue,
@@ -62,6 +62,7 @@ class IPLConfig:
             decision=row.toss_decision,
             winner=row.winner,
         )
+        return data
 
 
 DataLoaderConfig = TypeVar("DataLoaderConfig", ImdbConfig, IPLConfig)
