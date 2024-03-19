@@ -1,7 +1,6 @@
 from langchain_community.llms import LlamaCpp
-from langchain.callbacks.manager import CallbackManager
 
-from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
+from langchain_core.callbacks import StreamingStdOutCallbackHandler
 
 from huggingface_hub import hf_hub_download
 from contextlib import contextmanager, redirect_stderr, redirect_stdout
@@ -29,8 +28,6 @@ If you don't know the answer to a question, please don't share false information
 
 """
 
-CallbackManager = CallbackManager([StreamingStdOutCallbackHandler()])
-
 
 class TinyLlm:
     def __init__(self, model_name=tiny_model_name, model_file=tiny_model_file):
@@ -47,7 +44,7 @@ class TinyLlm:
                 n_batch=10,
                 n_threads=8,
                 n_gpu_layers=0,
-                callback_manager=CallbackManager,
+                callbacks=[StreamingStdOutCallbackHandler()],
                 temperature=0,
                 verbose=self.verbose,
             )

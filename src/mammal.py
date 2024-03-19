@@ -35,13 +35,14 @@ class TinyLamaUniverse:
     def __init__(
         self,
         llm,
-        csv_file_path,
-        csv_delimiter=",",
+        cfg,
+        vectorstore_name,
     ):
         self.llm = llm
-        self.csv_file_path = csv_file_path
-        self.csv_sep = csv_delimiter
-        self.vectorstore_path = "./datastore/titles_db"
+        self.csv_file_path = cfg.file_path
+        self.csv_sep = cfg.sep
+        self.cfg = cfg
+        self.vectorstore_path = f"./datastore/{vectorstore_name}"
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
 
     def read_tsv(self):
@@ -54,51 +55,49 @@ class TinyLamaUniverse:
             self.csv_file_path,
             sep=self.csv_sep,
             dtype=str,
-            usecols=["originalTitle", "startYear", "genres"],
-            blocksize="128MB",
+            usecols=self.cfg.columns,
+            blocksize="128KB",
         )
         self.model = SentenceTransformer(
             "sentence-transformers/all-MiniLM-L6-v2",
             device=self.device,
         )
+
         self.merged_index = faiss.IndexIDMap(
             faiss.IndexFlatL2(self.model.get_sentence_embedding_dimension())
         )
 
-        # df = df.map_partitions(self.__add_text)
-
-        # print(df.compute().head()["text"])
         # print(df.dtypes)
         # print(df.memory_usage(deep=True))
 
         self.df = df
         return self
 
-    def __format_row(self, row):
-        question = "genre: {genre}, movie: {title}, year: {year}".format(
-            genre=row.genres,
-            title=row.originalTitle,
-            year=row.startYear,
-        )
-
-        return question
-
     def __index_parition(self, partition):
-        db_ids = np.arange(len(partition)) + partition.index.start
+        # db_ids = np.arange(len(partition)) + partition.index.start
+        print(partition)
 
-        result = partition.apply(self.__format_row, axis=1)
+        result = partition.apply(self.cfg.format_row, axis=1)
 
-        # print("laa", result, result.tolist(), db_ids)
+        # print("laa", result.tolist(), db_ids)
         encoded_data = self.model.encode(
             result.tolist(),
             normalize_embeddings=False,
-            show_progress_bar=True,
+            # show_progress_bar=True,
         )
-        #
-        self.merged_index.add(encoded_data, db_ids)
+
+        # index = faiss.IndexIDMap(
+        #     faiss.IndexFlatL2(self.model.get_sentence_embedding_dimension())
+        # )
+
+        # faiss.normalize_L2(encoded_data)
+        # index.add(encoded_data)
+        # FAISS.from_documents(result.tolist(), encoded_data)
+        # self.merged_index.merge_from(index, partition.index.start)
+
         return result
 
-    def index_db(self):
+    def index_db(self, meta_keys={}):
         if self.df is None:
             raise Exception("UninitializedDataframeException")
 
@@ -108,38 +107,15 @@ class TinyLamaUniverse:
         if self.merged_index is None:
             raise Exception("UninitializedIndexException")
 
+        print(self.df.head(), meta_keys)
         partitions = self.df.map_partitions(
             self.__index_parition,
-            meta={
-                "originalTitle": "str",
-                "startYear": "str",
-                "genres": "str",
-                "text": "str",
-            },
-        )  # .compute()
-        # print(partitions.dtypes)
-        print(partitions.head())
+            meta=meta_keys,
+        )
 
-        for partition in partitions:
-            _ = partition
-            print("nice")
-
-        # encoded_data = model.encode(
-        #     text_data, normalize_embeddings=False, show_progress_bar=True
-        # )
-        # embeddings = []
-        # batch_size = 1000
-        # for i in range(0, len(text_data), batch_size):
-        #     batch = text_data[i: i + batch_size]
-        #     batch_embeddings = model.encode(
-        #         batch, normalize_embeddings=False, show_progress_bar=True
-        #     )
-        #     embeddings.extend(batch_embeddings)
-        #
-        # index.add(encoded_data, db_ids)
-        # Save the FAISS index
-        faiss.write_index(self.merged_index, self.vectorstore_path)
-        self.vectorestore = faiss
+        # partitions.visualize()
+        partitions.head()
+        # partitions.compute()
 
     def read_tsv_slow(self):
         # need to handle windows-1252 encoding as well
