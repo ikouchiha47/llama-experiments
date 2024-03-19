@@ -6,3 +6,4 @@ sentence-transformers
 faiss-cpu
 langchain-community
 pandas
+dask[dataframe]

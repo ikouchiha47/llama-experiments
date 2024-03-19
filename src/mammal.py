@@ -11,8 +11,11 @@ from sentence_transformers import SentenceTransformer
 import faiss
 
 import pandas as pd
+import dask.dataframe as dd
 import numpy as np
 import torch
+
+pd.set_option("display.max_colwidth", None)
 
 
 class ChatPromptTemplate:
@@ -45,30 +48,85 @@ class TinyLamaUniverse:
         self.read_tsv_pd()
 
     def read_tsv_pd(self):
-        pd.options.mode.copy_on_write = True
+        # pd.options.mode.copy_on_write = True
 
-        df = pd.read_csv(
+        df = dd.read_csv(
             self.csv_file_path,
-            delimiter=self.csv_sep,
+            sep=self.csv_sep,
+            dtype=str,
+            usecols=["originalTitle", "startYear", "genres"],
+            blocksize="128MB",
         )
-        model = SentenceTransformer(
+        self.model = SentenceTransformer(
             "sentence-transformers/all-MiniLM-L6-v2",
             device=self.device,
         )
-        df = df.copy()
-        df.loc[:, "text"] = df.apply(self.format_row, axis=1)
-
-        text_data = df.text.tolist()
-
-        index = faiss.IndexFlatL2(model.get_sentence_embedding_dimension())
-        index = faiss.IndexIDMap(index)
-        db_ids = df.index.values.astype(np.int64)
-
-        # print(text_data, db_ids)
-
-        encoded_data = model.encode(
-            text_data, normalize_embeddings=False, show_progress_bar=True
+        self.merged_index = faiss.IndexIDMap(
+            faiss.IndexFlatL2(self.model.get_sentence_embedding_dimension())
         )
+
+        # df = df.map_partitions(self.__add_text)
+
+        # print(df.compute().head()["text"])
+        # print(df.dtypes)
+        # print(df.memory_usage(deep=True))
+
+        self.df = df
+        return self
+
+    def __format_row(self, row):
+        question = "genre: {genre}, movie: {title}, year: {year}".format(
+            genre=row.genres,
+            title=row.originalTitle,
+            year=row.startYear,
+        )
+
+        return question
+
+    def __index_parition(self, partition):
+        db_ids = np.arange(len(partition)) + partition.index.start
+
+        result = partition.apply(self.__format_row, axis=1)
+
+        # print("laa", result, result.tolist(), db_ids)
+        encoded_data = self.model.encode(
+            result.tolist(),
+            normalize_embeddings=False,
+            show_progress_bar=True,
+        )
+        #
+        self.merged_index.add(encoded_data, db_ids)
+        return result
+
+    def index_db(self):
+        if self.df is None:
+            raise Exception("UninitializedDataframeException")
+
+        if self.model is None:
+            raise Exception("UninitializedModelExeception")
+
+        if self.merged_index is None:
+            raise Exception("UninitializedIndexException")
+
+        partitions = self.df.map_partitions(
+            self.__index_parition,
+            meta={
+                "originalTitle": "str",
+                "startYear": "str",
+                "genres": "str",
+                "text": "str",
+            },
+        )  # .compute()
+        # print(partitions.dtypes)
+        print(partitions.head())
+
+        for partition in partitions:
+            _ = partition
+            print("nice")
+
+        # encoded_data = model.encode(
+        #     text_data, normalize_embeddings=False, show_progress_bar=True
+        # )
         # embeddings = []
         # batch_size = 1000
         # for i in range(0, len(text_data), batch_size):
@@ -78,18 +136,10 @@ class TinyLamaUniverse:
         #     )
         #     embeddings.extend(batch_embeddings)
         #
-        index.add(encoded_data, db_ids)
+        # index.add(encoded_data, db_ids)
         # Save the FAISS index
-        faiss.write_index(index, self.vectorstore_path)
+        faiss.write_index(self.merged_index, self.vectorstore_path)
         self.vectorestore = faiss
-
-    def format_row(self, row):
-        question = "genre: {genre}, movie: {title}, year: {year}".format(
-            genre=row["genres"],
-            title=row["originalTitle"],
-            year=row["startYear"],
-        )
-        return question
 
     def read_tsv_slow(self):
         # need to handle windows-1252 encoding as well
