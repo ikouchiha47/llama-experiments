@@ -1,0 +1,8 @@
+llama-cpp-python
+ctransformers
+langchain
+huggingface_hub
+sentence-transformers
+faiss-cpu
+langchain-community
+pandas
