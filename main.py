@@ -67,6 +67,7 @@ class IPLConfig:
 
 DataLoaderConfig = TypeVar("DataLoaderConfig", ImdbConfig, IPLConfig)
 
+
 if __name__ == "__main__":
     llm = TinyLlm()
     # cfg = ImdbConfig()
@@ -74,10 +75,11 @@ if __name__ == "__main__":
 
     llama = TinyLamaUniverse(llm.model, cfg, "ipl_db")
 
-    # llama.read_tsv()
-    # llama.index_db(cfg.meta_keys)
+    llama.read_tsv()
+    llama.index_db(cfg.meta_keys)
 
-    llama.load_vector_store_local("./datastore/ipl_db")
+    llama.load_vector_store_local()
+
     llama.build_qa(llama.vectorstore, ChatPromptTemplate())
 
     bot = ConvesationBot(llama.qa)
