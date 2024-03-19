@@ -1,19 +1,22 @@
-from langchain_community.document_loaders import CSVLoader
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_community.embeddings import (
-    HuggingFaceEmbeddings,
-)
+# from langchain_community.document_loaders import CSVLoader
+# from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain.memory import ConversationBufferMemory
+from langchain_community.docstore.in_memory import InMemoryDocstore
 from langchain_community.vectorstores import FAISS
 from langchain_core.prompts import PromptTemplate
-from langchain.memory import ConversationBufferMemory
 from langchain.chains import ConversationalRetrievalChain
 from sentence_transformers import SentenceTransformer
+
+from langchain_community.embeddings import HuggingFaceEmbeddings
+
 import faiss
 
 import pandas as pd
 import dask.dataframe as dd
 import numpy as np
 import torch
+import pickle
+from pathlib import Path
 
 pd.set_option("display.max_colwidth", None)
 
@@ -21,6 +24,7 @@ pd.set_option("display.max_colwidth", None)
 class ChatPromptTemplate:
     def __init__(self):
         template = (
+            "You are given the results of matches played in IPL 2023. "
             "Combine the chat history and follow up question into "
             "a standalone question."
             "If you do not know the answer to a question,"
@@ -28,7 +32,7 @@ class ChatPromptTemplate:
             "Chat History: {chat_history}"
             "Follow up question: {question}"
         )
-        self.prompt = PromptTemplate.from_template(template)
+        self.template = PromptTemplate.from_template(template)
 
 
 class TinyLamaUniverse:
@@ -44,6 +48,9 @@ class TinyLamaUniverse:
         self.cfg = cfg
         self.vectorstore_path = f"./datastore/{vectorstore_name}"
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.qa = None
+        self.model = None
+        self.merged_index = None
 
     def read_tsv(self):
         self.read_tsv_pd()
@@ -91,6 +98,7 @@ class TinyLamaUniverse:
         faiss.normalize_L2(encoded_data)
         index.add_with_ids(encoded_data, db_ids)
 
+        # index = FAISS.from_documents(result.tolist(), self.model)
         self.merged_index.merge_from(index)
 
         return result
@@ -102,43 +110,68 @@ class TinyLamaUniverse:
         if self.model is None:
             raise Exception("UninitializedModelExeception")
 
-        if self.merged_index is None:
-            raise Exception("UninitializedIndexException")
+        # if self.merged_index is None:
+        #     raise Exception("UninitializedIndexException")
 
         partitions = self.df.map_partitions(
             self.__index_parition
-        )  # , meta={"text": "str"})
+            # , meta={"text": "str"}
+        )
 
         # partitions.visualize()
         # print(partitions.head())
         partitions.compute()
-        faiss.write_index(self.merged_index, self.vectorstore_path)
+        # self.merged_index.save_local(self.vectorstore_path)
+        path = Path(self.vectorstore_path)
+        index_path = str(path / "index.faiss")
+        pickel_path = str(path / "index.pkl")
 
-    def load_vector_store_local(self):
-        self.model = SentenceTransformer(
-            "sentence-transformers/all-MiniLM-L6-v2",
-            device=self.device,
+        faiss.write_index(self.merged_index, index_path)
+
+        docstore = InMemoryDocstore({})
+        index_to_docstore_id = {}
+        with open(pickel_path, "wb") as f:
+            pickle.dump((docstore, index_to_docstore_id), f)
+
+    def load_vector_store_local(self, path):
+        # embeddings = SentenceTransformer(
+        #     "sentence-transformers/all-MiniLM-L6-v2",
+        #     device=self.device,
+        # )
+        embeddings = HuggingFaceEmbeddings(
+            model_name="sentence-transformers/all-MiniLM-L6-v2",
+            model_kwargs={"device": self.device},
+            encode_kwargs={"normalize_embeddings": False},
         )
+
         self.vectorstore = FAISS.load_local(
             self.vectorstore_path,
-            self.model,
+            embeddings,
             allow_dangerous_deserialization=True,
         )
+        # self.vectorstore = FAISS(
+        #     embeddings,
+        #     faiss.read_index(self.vectorstore_path + "/index.faiss"),
+        #     InMemoryDocstore({}),
+        #     {},
+        # )
 
     def build_qa(self, vectorstore, prompt: ChatPromptTemplate):
-        if self.qa is not None:
-            return
         if vectorstore is None:
             raise Exception("UninitializedVectorStoreException")
 
-        # question_generator_chain = LLMChain(llm=self.llm, prompt=prompt)
-
+        memory = ConversationBufferMemory(
+            memory_key="chat_history",
+            return_messages=True,
+        )
         self.qa = ConversationalRetrievalChain.from_llm(
             self.llm,
+            return_source_documents=True,
             retriever=vectorstore.as_retriever(
                 search_type="similarity", search_kwargs={"k": 2}
             ),
-            condense_question_prompt=prompt,
+            condense_question_prompt=prompt.template,
+            memory=memory,
         )
 
 
@@ -148,4 +181,10 @@ class ConvesationBot:
         self.chat_history = []
 
     def make_conversation(self, query):
-        return self.qa({"question": query, "chat_hostory": self.chat_history})
+        result = self.qa(
+            {"question": query, "chat_history": self.chat_history})
+        self.chat_history.extend([(query, result["answer"])])
+        return result["answer"]
+
+    def clear_chat(self):
+        self.chat_history = []

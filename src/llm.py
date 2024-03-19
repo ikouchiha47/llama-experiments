@@ -38,7 +38,7 @@ class TinyLlm:
         self.system_message = story_writer_system_message
 
         with suppress_stdout_stderr():
-            self.llm = LlamaCpp(
+            self.model = LlamaCpp(
                 model_path=self.model_path,
                 n_ctx=512,
                 n_batch=10,

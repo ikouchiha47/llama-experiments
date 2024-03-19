@@ -72,12 +72,12 @@ if __name__ == "__main__":
     # cfg = ImdbConfig()
     cfg = IPLConfig()
 
-    llama = TinyLamaUniverse(llm, cfg, "ipl_db")
+    llama = TinyLamaUniverse(llm.model, cfg, "ipl_db")
 
     # llama.read_tsv()
     # llama.index_db(cfg.meta_keys)
 
-    llama.load_vector_store_local()
+    llama.load_vector_store_local("./datastore/ipl_db")
     llama.build_qa(llama.vectorstore, ChatPromptTemplate())
 
     bot = ConvesationBot(llama.qa)
@@ -90,4 +90,4 @@ if __name__ == "__main__":
         if query == "":
             continue
 
-        print("Response ", bot.make_conversation(query)["answer"])
+        print("Response ", bot.make_conversation(query))
