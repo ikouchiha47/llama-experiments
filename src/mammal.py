@@ -74,7 +74,7 @@ class TinyLamaUniverse:
         return self
 
     def __index_parition(self, partition):
-        db_ids = np.arange(len(partition))  # + partition.index.start
+        db_ids = np.arange(len(partition)) + partition.index.start
 
         result = partition.apply(self.cfg.format_row, axis=1)
         # result = partition.assign(text=self.cfg.format_row)
@@ -89,11 +89,9 @@ class TinyLamaUniverse:
         )
         #
         faiss.normalize_L2(encoded_data)
-        index.add(encoded_data, db_ids)
-        # FAISS.from_documents(result.tolist(), encoded_data)
-        # self.merged_index.merge_from(index, partition.index.start)
-        # result = partition
-        # print(result.head())
+        index.add_with_ids(encoded_data, db_ids)
+
+        self.merged_index.merge_from(index)
 
         return result
 
@@ -107,48 +105,31 @@ class TinyLamaUniverse:
         if self.merged_index is None:
             raise Exception("UninitializedIndexException")
 
-        # print(self.df.head(), meta_keys)
         partitions = self.df.map_partitions(
-            self.__index_parition, meta={"text": "str"})
+            self.__index_parition
+        )  # , meta={"text": "str"})
 
         # partitions.visualize()
         # print(partitions.head())
         partitions.compute()
-
-    def read_tsv_slow(self):
-        # need to handle windows-1252 encoding as well
-        loader = CSVLoader(
-            file_path=self.csv_file_path,
-            encoding="UTF-8",
-            csv_args={"delimiter": self.csv_sep},
-        )
-        text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=250,
-            chunk_overlap=10,
-        )
-        data = loader.load()
-        text_chunks = text_splitter.split_documents(data)
-
-        embeddings = HuggingFaceEmbeddings(
-            model_name="sentence-transformers/all-MiniLM-L6-v2",
-            model_kwargs={"device": "cpu"},
-            encode_kwargs={"normalize_embeddings": False},
-        )
-        vectorstore = FAISS.from_documents(text_chunks, embeddings)
-        vectorstore.save_local(self.vectorstore_path)
-        self.vectorestore = vectorstore
+        faiss.write_index(self.merged_index, self.vectorstore_path)
 
     def load_vector_store_local(self):
-        embeddings = HuggingFaceEmbeddings(
-            model_name="sentence-transformers/all-MiniLM-L6-v2",
-            model_kwargs={"device": "cpu"},
-            encode_kwargs={"normalize_embeddings": False},
+        self.model = SentenceTransformer(
+            "sentence-transformers/all-MiniLM-L6-v2",
+            device=self.device,
         )
-        FAISS.load_local(self.vectorstore_path, embeddings)
+        self.vectorstore = FAISS.load_local(
+            self.vectorstore_path,
+            self.model,
+            allow_dangerous_deserialization=True,
+        )
 
     def build_qa(self, vectorstore, prompt: ChatPromptTemplate):
         if self.qa is not None:
             return
+        if vectorstore is None:
+            raise Exception("UninitializedVectorStoreException")
 
         # question_generator_chain = LLMChain(llm=self.llm, prompt=prompt)
 

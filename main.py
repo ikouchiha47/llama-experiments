@@ -74,12 +74,11 @@ if __name__ == "__main__":
 
     llama = TinyLamaUniverse(llm, cfg, "ipl_db")
 
-    llama.read_tsv()
-    llama.index_db(cfg.meta_keys)
+    # llama.read_tsv()
+    # llama.index_db(cfg.meta_keys)
 
-    # llama.load_vector_store_local()
-    sys.exit(0)
-    llama.build_qa(llama.vectorestore, ChatPromptTemplate())
+    llama.load_vector_store_local()
+    llama.build_qa(llama.vectorstore, ChatPromptTemplate())
 
     bot = ConvesationBot(llama.qa)
 
