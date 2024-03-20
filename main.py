@@ -59,11 +59,12 @@ class IPLConfig:
         "winner": "str",
     }
 
-    # template = (
-    #     "Match was played between two teams {team1} and {team2} at {venue}."
-    #     " {toss_won} won the toss and decided to {decision}."
-    #     " {winner} won the match."
-    # )
+    template = (
+        "Match {match_number} was played between two teams "
+        "{team1} and {team2} at {venue}. It was a {match_type} match. "
+        "{toss_won} won the toss and decided to {decision}. "
+        "{winner} won the match and {loser} lost the match."
+    )
 
     #     template = """
     # Match {match_number} was played between {team1} and {team2} in IPL {season}.
@@ -72,24 +73,24 @@ class IPLConfig:
     # It was a {match_type} match. {winner} won the match {match_number}.</s>
     #     """
 
-    template = """
-<|prompt|>
-Who played in match {match_number} in IPL {season}?</s>
-<|assistant|>
-Match number {match_number} was played between {team1} and {team2}.</s>
-
-<|prompt|>
-Where was the match {match_number} played in IPL {season}?</s>
-<|assistant|>
-The match was held at {venue} on {date} (dd-mm-yyyy).</s>
-
-<|prompt|>
-Which team won the match {match_number}?</s>
-<|assistant|>
-Match {match_number} was a {match_type} match. \
-{toss_won} decided to {decision}, and {winner} won the match,\
-{loser} lost the match</s>
-    """
+    #     template = """
+    # <|prompt|>
+    # Who played in match {match_number} in IPL {season}?</s>
+    # <|assistant|>
+    # Match number {match_number} was played between {team1} and {team2}.</s>
+    #
+    # <|prompt|>
+    # Where was the match {match_number} played in IPL {season}?</s>
+    # <|assistant|>
+    # The match was held at {venue} on {date} (dd-mm-yyyy).</s>
+    #
+    # <|prompt|>
+    # Which team won the match {match_number}?</s>
+    # <|assistant|>
+    # Match {match_number} was a {match_type} match. \
+    # {toss_won} decided to {decision}, and {winner} won the match,\
+    # {loser} lost the match</s>
+    #     """
 
     def format_row(self, row):
         prompt = PromptTemplate.from_template(self.template)
