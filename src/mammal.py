@@ -1,15 +1,8 @@
 # from langchain_community.document_loaders import CSVLoader
 # from langchain.text_splitter import RecursiveCharacterTextSplitter
 # from langchain.memory import ConversationBufferMemory
-from pandas.io.parquet import json
 from sentence_transformers import SentenceTransformer
 from langchain_community.vectorstores import FAISS
-from langchain_core.prompts import (
-    ChatPromptTemplate,
-    PromptTemplate,
-    MessagesPlaceholder,
-)
-from langchain_core.messages import AIMessage, HumanMessage
 from langchain.chains import ConversationalRetrievalChain
 from langchain_community.embeddings import HuggingFaceEmbeddings
 
@@ -20,61 +13,9 @@ import torch
 import os
 from pathlib import Path
 
+from .templates import ChatTemplate
+
 pd.set_option("display.max_colwidth", None)
-
-# class IPLChatPromptTemplate:
-#     def __init__(self):
-#         contextual_prompt = """You are given the results of cricket matches \
-#         played in the Indian Premier League(IPL), year 2023. \
-#         The winning team take a cup as trophy.
-#         Given a chat history and the latest user question \
-#         which might reference {context} in the chat history, \
-#         formulate a standalone question which can be understood \
-#         without the chat history. Do NOT answer the question."""
-#
-#         template = (
-#             ("system", contextual_prompt),
-#             MessagesPlaceholder(variable_name="chat_history"),
-#             ("human", "{question}"),
-#         )
-#         self.template = ChatPromptTemplate.from_messages(template)
-#
-
-
-class IPLChatPromptTemplate:
-    def __init__(self):
-        template = """
-<|system|>
-You are given the results of cricket matches played in the Indian
-Premier League(IPL) in the year 2023. Given the chat history \
-delimited by(<hs></hs>) and question which might \
-might reference context (delimited by <ctx></ctx>) \
-in chat history (delimited by <hs></hs>), formulate an answer.\
-Do NOT print the question.
-
-When answering to user, if you do NOT know, just say that you do NOT know.
-Do NOT make up answers from outside the context.
-
-Avoid mentioning that you obtained the information from the context.
-And answer according to the language of the user's question.
-
-<ctx>
-{context}
-</ctx>
-
-<hs>
-{chat_history}
-</hs>
-
-<|prompt|>
-{question}</s>
-<|assistant|>
-        """
-
-        self.template = PromptTemplate(
-            template=template,
-            input_variables=["context", "question", "chat_history"],
-        )
 
 
 class TinyLamaUniverse:
@@ -93,8 +34,7 @@ class TinyLamaUniverse:
         self.qa = None
         self.model = None
         self.merged_index = None
-        self.models_path = Path(
-            "./models/sentence-transformers/all-MiniLM-L6-v2")
+        self.models_path = Path("./models/sentence-transformers/all-MiniLM-L6-v2")
 
         self.__load_trasformer()
 
@@ -118,7 +58,7 @@ class TinyLamaUniverse:
             # dtype=str,
             dtype=self.cfg.meta_keys,
             usecols=self.cfg.columns,
-            blocksize="128KB",
+            blocksize=self.cfg.blocksize,
         )
 
         self.model = HuggingFaceEmbeddings(
@@ -174,7 +114,7 @@ class TinyLamaUniverse:
             allow_dangerous_deserialization=True,
         )
 
-    def build_qa(self, vectorstore, prompt: IPLChatPromptTemplate):
+    def build_qa(self, vectorstore, prompt: ChatTemplate):
         if vectorstore is None:
             raise Exception("UninitializedVectorStoreException")
 
