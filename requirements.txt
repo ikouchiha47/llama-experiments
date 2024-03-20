@@ -1,9 +1,8 @@
 llama-cpp-python
-ctransformers
 langchain
+langchain-community
 huggingface_hub
 sentence-transformers
 faiss-cpu
-langchain-community
 pandas
 dask[dataframe]

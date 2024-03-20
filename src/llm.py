@@ -18,16 +18,6 @@ def suppress_stdout_stderr():
 tiny_model_name = "TheBloke/TinyLlama-1.1B-Chat-v1.0-GGUF"
 tiny_model_file = "tinyllama-1.1b-chat-v1.0.Q5_K_S.gguf"
 
-story_writer_system_message = """
-You are a helpful, respectful and honest assistant. Always answer as helpfully as possible, while being safe.
-Your answers should not include any harmful, unethical, racist, sexist, toxic, dangerous, or illegal content. 
-Please ensure that your responses are socially unbiased and positive in nature.
-
-If a question does not make any sense, or is not factually coherent, explain why instead of answering something not correct. 
-If you don't know the answer to a question, please don't share false information.
-
-"""
-
 
 class TinyLlm:
     def __init__(self, model_name=tiny_model_name, model_file=tiny_model_file):
@@ -35,16 +25,18 @@ class TinyLlm:
         self.model_file = model_file
         self.model_path = hf_hub_download(model_name, filename=model_file)
         self.verbose = False
-        self.system_message = story_writer_system_message
 
         with suppress_stdout_stderr():
             self.model = LlamaCpp(
                 model_path=self.model_path,
-                n_ctx=512,
-                n_batch=10,
+                stop=["</s>"],
+                context_window=2048,
+                n_ctx=1024,
+                n_batch=100,
                 n_threads=8,
                 n_gpu_layers=0,
                 callbacks=[StreamingStdOutCallbackHandler()],
                 temperature=0,
+                # repeat_penalty=1.2,
                 verbose=self.verbose,
             )
