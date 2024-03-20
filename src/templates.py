@@ -28,7 +28,7 @@ And answer according to the language of the user's question.
 {chat_history}
 </hs>
 
-<|prompt|>
+<|user|>
 {question}</s>
 <|assistant|>
     """
@@ -64,7 +64,7 @@ And answer according to the language of the user's question.
 {chat_history}
 </hs>
 
-<|prompt|>
+<|user|>
 {question}</s>
 <|assistant|>
         """
