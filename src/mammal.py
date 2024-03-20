@@ -8,6 +8,7 @@ from langchain_community.embeddings import HuggingFaceEmbeddings
 
 import pandas as pd
 import dask.dataframe as dd
+from dask.diagnostics import ProgressBar
 import torch
 
 import os
@@ -92,13 +93,15 @@ class TinyLamaUniverse:
         if self.merged_index is None:
             raise Exception("UninitializedIndexException")
 
-        partitions = self.df.map_partitions(
-            self.__index_parition
-            # , meta={"text": "str"}
-        )
+        with ProgressBar():
+            partitions = self.df.map_partitions(
+                self.__index_parition
+                # , meta={"text": "str"}
+            )
+
+            partitions.compute()
 
         # partitions.visualize()
-        partitions.compute()
         self.merged_index.save_local(self.vectorstore_path)
 
     def load_vector_store_local(self):

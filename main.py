@@ -22,8 +22,8 @@ if __name__ == "__main__":
     command = sys.argv[1]
 
     llm = TinyLlm()
-    # cfg = ImdbConfig()
-    cfg = IPLConfig()
+    cfg = ImdbConfig()
+    # cfg = IPLConfig()
 
     llama = TinyLamaUniverse(llm.model, cfg, cfg.vectordb_name)
 
@@ -32,8 +32,8 @@ if __name__ == "__main__":
         llama.index_db(cfg.meta_keys)
 
     llama.load_vector_store_local()
-    llama.build_qa(llama.vectorstore, IPLChatPromptTemplate())
-    # llama.build_qa(llama.vectorstore, ImdbChatPromptTemplate())
+    # llama.build_qa(llama.vectorstore, IPLChatPromptTemplate())
+    llama.build_qa(llama.vectorstore, ImdbChatPromptTemplate())
 
     bot = ConvesationBot(llama.qa)
 

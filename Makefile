@@ -3,7 +3,6 @@ setup:
 	pip install -r requirements.txt
 
 read:
-	rm -rf datastore/ipl_db
 	python3 main.py read
 
 run:
