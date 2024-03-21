@@ -1,9 +1,5 @@
 from typing import TypeVar
-# from langchain_core.prompts import (
-#     # ChatPromptTemplate,
-#     PromptTemplate,
-#     # MessagesPlaceholder,
-# )
+
 from llama_index.core.prompts.base import PromptTemplate
 from llama_index.core.prompts.prompt_type import PromptType
 
