@@ -3,6 +3,13 @@ langchain
 langchain-community
 huggingface_hub
 sentence-transformers
-faiss-cpu
+pgvector
+psycopg2
 pandas
 dask[dataframe]
+sqlalchemy
+llama-index-vector-stores-postgres
+llama-index
+llama-index-embeddings-huggingface
+llama-index-llms-langchain
+llama-index-llms-llama-cpp

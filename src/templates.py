@@ -1,54 +1,50 @@
 from typing import TypeVar
-from langchain_core.prompts import (
-    # ChatPromptTemplate,
-    PromptTemplate,
-    # MessagesPlaceholder,
-)
-
+# from langchain_core.prompts import (
+#     # ChatPromptTemplate,
+#     PromptTemplate,
+#     # MessagesPlaceholder,
+# )
+from llama_index.core.prompts.base import PromptTemplate
+from llama_index.core.prompts.prompt_type import PromptType
 
 class ImdbChatPromptTemplate:
     prompt_template = """
+<<SYS>>
 You are given a list of movies, release date and genre.
-Given the chat history delimited by(<hs></hs>) and \
-question which might reference context (delimited by <ctx></ctx>) \
-in chat history (delimited by <hs></hs>), formulate an answer.\
-Do NOT print the question.
-
 When answering to user, if you do NOT know, just say that you do NOT know.
 Do NOT make up answers from outside the context.
 
 Avoid mentioning that you obtained the information from the context.
 And answer according to the language of the user's question.
 
-<ctx>
-{context}
-</ctx>
+Context Information is below:
+{context}\n\n
 
-<hs>
-{chat_history}
-</hs>
+Chat history is below:
+{chat_history}\n\n
 
-<|user|>
-{question}</s>
-<|assistant|>
-    """
+Given the new context and chat history, refine the original answer to better answer the query.
+Do NOT print the question. 
+<</SYS>>
+
+[INST]
+User: {question}
+[/INST]\n
+Assistant:"""
 
     def __init__(self):
         self.template = PromptTemplate(
-            template=self.prompt_template,
-            input_variables=["context", "question", "chat_history"],
+            self.prompt_template,
+            prompt_type=PromptType.REFINE,
         )
 
 
 class IPLChatPromptTemplate:
     prompt_template = """
-<|system|>
-You are given the results of cricket matches played in the Indian
-Premier League(IPL) in the year 2023. Given the chat history \
-delimited by(<hs></hs>) and question which might \
-reference context (delimited by <ctx></ctx>) \
-in chat history (delimited by <hs></hs>), formulate an answer.\
-Do NOT print the question.
+<<SYS>>
+You are given the results of cricket matches played in the Indian \
+Premier League(IPL) season 2023. The winner of the season is the \
+winner of the final match.
 
 When answering to user, if you do NOT know, just say that you do NOT know.
 Do NOT make up answers from outside the context.
@@ -56,23 +52,25 @@ Do NOT make up answers from outside the context.
 Avoid mentioning that you obtained the information from the context.
 And answer according to the language of the user's question.
 
-<ctx>
-{context}
-</ctx>
+Context Information is below:
+{context}\n\n
 
-<hs>
-{chat_history}
-</hs>
+Chat history is below:
+{chat_history}\n\n
 
-<|user|>
-{question}</s>
-<|assistant|>
-        """
+Given the new context and chat history, refine the original answer to better answer the query.
+Do NOT print the question. 
+<</SYS>>
+
+[INST]
+User: {question}
+[/INST]\n
+Assistant:"""
 
     def __init__(self):
         self.template = PromptTemplate(
-            template=self.prompt_template,
-            input_variables=["context", "question", "chat_history"],
+            self.prompt_template,
+            prompt_type=PromptType.REFINE,
         )
 
 

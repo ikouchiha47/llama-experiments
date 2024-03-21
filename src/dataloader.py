@@ -1,4 +1,6 @@
 from langchain_core.prompts import PromptTemplate
+from llama_index.core.schema import TextNode
+
 from typing import TypeVar
 
 T = TypeVar("T", bound="ImdbConfig")
@@ -19,6 +21,19 @@ class ImdbConfig:
         "Movie {title}, was released in the year {year}, "
         "belonging to the {genre} genre"
     )
+    template = """
+    "Below is an instruction that describes a task, \
+    paired with an input that provides further context.
+
+    ### Instruction:
+    Summarise the movie {title}.
+
+    ### Input:
+    {movie} was released in the year {2023}. It belongs to the {genre} genres.
+
+    ### Output:
+    {movie} {genre} {year}
+    """
 
     def format_row(self, row):
         prompt = PromptTemplate.from_template(self.template)
@@ -27,8 +42,16 @@ class ImdbConfig:
             title=row.originalTitle,
             year=row.startYear,
         )
+        node = TextNode(
+            text=data,
+            metadata={
+                "genre": row.genres,
+                "title": row.originalTitle,
+                "year": row.startYear,
+            }
+        )
 
-        return data
+        return node
 
 
 class IPLConfig:
@@ -69,6 +92,22 @@ class IPLConfig:
         "{winner} won the match and {loser} lost the match."
     )
 
+    template = """
+"Below is an instruction that describes a task, \
+paired with an input that provides further context.
+
+### Instruction:
+Summarise the results of IPL season {season} match number {match_number}.
+    
+### Input:
+Match was played between {team1} and {team2} at {venue} on {date} (dd-mm-yyyy).\
+ It was a {match_type} match.
+ {toss_won} won the toss and decided to {decision}.
+    
+### Output:
+{winner} won the {match_type} match and {loser} lost the match.
+"""
+
     #     template = """
     # Match {match_number} was played between {team1} and {team2} \
     # in IPL {season}.
@@ -103,6 +142,7 @@ class IPLConfig:
         if not lost:
             return ""
 
+        loser = lost.pop()
         data = prompt.format(
             season=row.season,
             date=row.date,
@@ -111,15 +151,30 @@ class IPLConfig:
             team1=row.team1,
             team2=row.team2,
             venue=row.venue,
-            number=row.match_number,
             toss_won=row.toss_won,
             decision=row.toss_decision,
             winner=row.winner,
-            loser=lost.pop(),
+            loser=loser,
+        )
+        node = TextNode(
+            text=data,
+            metadata={
+                "season": row.season,
+                "date": row.date,
+                "match_number": row.match_number,
+                "match_type": row.match_type,
+                "team1": row.team1,
+                "team2": row.team2,
+                "venue": row.venue,
+                "toss_won": row.toss_won,
+                "decision": row.toss_decision,
+                "winner": row.winner,
+                "loser": loser,
+            }
         )
 
         # print(data)
-        return data
+        return node
 
 
 DataLoaderConfig = TypeVar("DataLoaderConfig", ImdbConfig, IPLConfig)

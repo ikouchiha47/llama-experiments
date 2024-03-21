@@ -1,0 +1,16 @@
+services:
+  db:
+    hostname: db
+    image: ankane/pgvector
+    ports:
+     - 5433:5432
+    restart: always
+    environment:
+      - POSTGRES_DB=vectordb
+      - POSTGRES_DB_HOST=localhost
+      - POSTGRES_DB_PORT=5433
+      - POSTGRES_USER=testuser
+      - POSTGRES_PASSWORD=testpwd
+      - POSTGRES_HOST_AUTH_METHOD=trust
+    volumes:
+     - ./init.sql:/docker-entrypoint-initdb.d/init.sql

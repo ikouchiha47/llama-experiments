@@ -2,7 +2,7 @@ import sys
 from src.llm import TinyLlm
 from src.mammal import (
     TinyLamaUniverse,
-    ConvesationBot,
+    ConversationBot,
 )
 from src.templates import ImdbChatPromptTemplate, IPLChatPromptTemplate
 
@@ -22,20 +22,23 @@ if __name__ == "__main__":
     command = sys.argv[1]
 
     llm = TinyLlm()
-    cfg = ImdbConfig()
-    # cfg = IPLConfig()
+    # cfg = ImdbConfig()
+    cfg = IPLConfig()
 
     llama = TinyLamaUniverse(llm.model, cfg, cfg.vectordb_name)
 
     if command == "read":
         llama.read_tsv()
         llama.index_db(cfg.meta_keys)
+        sys.exit(0)
 
-    llama.load_vector_store_local()
-    # llama.build_qa(llama.vectorstore, IPLChatPromptTemplate())
-    llama.build_qa(llama.vectorstore, ImdbChatPromptTemplate())
+    prompt_template = IPLChatPromptTemplate()
+    # prompt_template = ImdbChatPromptTemplate()
 
-    bot = ConvesationBot(llama.qa)
+    # llama.load_vector_store_local()
+    # llama.build_qa(llama.vectorstore, prompt_template)
+
+    bot = ConversationBot(llama.llm, llama.vectorstore, prompt_template)
 
     while True:
         query = input("Input Prompt: ")
@@ -45,6 +48,4 @@ if __name__ == "__main__":
         if query == "":
             continue
 
-        bot.make_conversation(query, llama.retriever)
-        print("")
-        print("")
+        bot.make_conversation(query)

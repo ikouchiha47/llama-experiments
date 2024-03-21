@@ -2,8 +2,11 @@ setup:
 	CMAKE_ARGS="-DLLAMA_METAL=off" pip install llama-cpp-python
 	pip install -r requirements.txt
 
+pg.install:
+	LDFLAGS="-L/opt/homebrew/opt/openssl@3/lib" CPPFLAGS="-I/opt/homebrew/opt/openssl@3/include" pip install psycopg2
+
 read:
-	python3 main.py read
+	TOKENIZERS_PARALLELISM=true python3 main.py read
 
 run:
 	python3 main.py run
@@ -13,3 +16,9 @@ freeze:
 
 download.models:
 	python3 hugfacemodels.py
+
+pg.up:
+	docker-compose -f pgvector.docker-compose.yaml up -d
+
+pg.down:
+	docker-compose -f pgvector.docker-compose.yaml down

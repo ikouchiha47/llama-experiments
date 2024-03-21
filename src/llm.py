@@ -1,4 +1,9 @@
-from langchain_community.llms import LlamaCpp
+# from langchain_community.llms import LlamaCpp
+from llama_index.llms.llama_cpp import LlamaCPP as LlamaCpp
+from llama_index.llms.llama_cpp.llama_utils import (
+    messages_to_prompt,
+    completion_to_prompt,
+)
 
 from langchain_core.callbacks import StreamingStdOutCallbackHandler
 
@@ -29,14 +34,19 @@ class TinyLlm:
         with suppress_stdout_stderr():
             self.model = LlamaCpp(
                 model_path=self.model_path,
-                stop=["</s>"],
-                context_window=2048,
-                n_ctx=1024,
-                n_batch=100,
-                n_threads=8,
-                n_gpu_layers=0,
-                callbacks=[StreamingStdOutCallbackHandler()],
                 temperature=0,
-                # repeat_penalty=1.2,
+                # messages_to_prompt=messages_to_prompt,
+                # completion_to_prompt=completion_to_prompt,
+                model_kwargs={
+                    "stop": ["[/INST]", "None", "User:"],
+                    "context_window": 2048,
+                    "n_ctx": 1024,
+                    "n_batch": 100,
+                    "n_threads": 8,
+                    "n_gpu_layers": 0,
+                    "callbacks": [StreamingStdOutCallbackHandler()],
+                    "low_memory": True,
+                    # repeat_penalty = 1.2,
+            },
                 verbose=self.verbose,
             )

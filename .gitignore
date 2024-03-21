@@ -1,6 +1,7 @@
 *.pyc
 *.svg
 
+.idea/
 .venv/
 models/**
 **__pycache__/
