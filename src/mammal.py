@@ -25,6 +25,8 @@ from llama_index.core.indices.service_context import ServiceContext
 # from llama_index.core.schema import TextNode
 from llama_index.core.prompts.base import PromptTemplate
 
+from dask.diagnostics import ProgressBar
+
 import torch
 import os
 from pathlib import Path
@@ -107,6 +109,7 @@ class TinyLamaUniverse:
             embed_dim=self.transformer.get_sentence_embedding_dimension(),
         )
 
+        self.context = StorageContext.from_defaults(vector_store=store)
         self.vectorstore = VectorStoreIndex.from_vector_store(vector_store=store)
 
     def __load_transformer(self):
@@ -140,11 +143,12 @@ class TinyLamaUniverse:
 
         # print(df.dtypes)
         # print(df.memory_usage(deep=True))
-
         self.df = df
         return self
 
     def __index_partition(self, partition):
+        # print("indexing partition...")
+        partition = partition.dropna()
         result = partition.apply(self.cfg.format_row, axis=1)
 
         # encoded_data = self.transformer.encode(
@@ -152,9 +156,15 @@ class TinyLamaUniverse:
         #     normalize_embeddings=False,
         #     show_progress_bar=True,
         # )
+        # print(result.tolist())
+        VectorStoreIndex(
+            result.tolist(),
+            storage_context=self.context,
+            show_progress=True,
+            use_async=True
+        )
 
-        print(result.tolist())
-        self.vectorstore.insert_nodes(result.tolist())
+       # self.vectorstore.insert_nodes(result.tolist())
 
         return result
 
@@ -175,7 +185,7 @@ class TinyLamaUniverse:
         #     print(partition)
 
         # partitions.visualize(filename="execution.svg")
-
+        # with ProgressBar():
         partitions.compute()
 
         # save_path = Path(self.vectorstore_path)

@@ -1,5 +1,5 @@
 from langchain_core.prompts import PromptTemplate
-from llama_index.core.schema import TextNode
+from llama_index.core.schema import Document
 
 from typing import TypeVar
 
@@ -8,7 +8,7 @@ T = TypeVar("T", bound="ImdbConfig")
 
 class ImdbConfig:
     file_path = "../csv-reading-gpu/datas/title.basics.tsv"
-    blocksize = "128MB"
+    blocksize = "12MB"
     vectordb_name = "imdb_db"
     columns = ["originalTitle", "startYear", "genres"]
     sep = "\t"
@@ -42,7 +42,7 @@ class ImdbConfig:
             title=row.originalTitle,
             year=row.startYear,
         )
-        node = TextNode(
+        node = Document(
             text=data,
             metadata={
                 "genre": row.genres,
@@ -156,7 +156,24 @@ Match was played between {team1} and {team2} at {venue} on {date} (dd-mm-yyyy).\
             winner=row.winner,
             loser=loser,
         )
-        node = TextNode(
+        # node = TextNode(
+        #     text=data,
+        #     metadata={
+        #         "season": row.season,
+        #         "date": row.date,
+        #         "match_number": row.match_number,
+        #         "match_type": row.match_type,
+        #         "team1": row.team1,
+        #         "team2": row.team2,
+        #         "venue": row.venue,
+        #         "toss_won": row.toss_won,
+        #         "decision": row.toss_decision,
+        #         "winner": row.winner,
+        #         "loser": loser,
+        #     }
+        # )
+        #
+        node = Document(
             text=data,
             metadata={
                 "season": row.season,
