@@ -29,10 +29,10 @@ class ImdbConfig:
     Summarise the movie {title}.
 
     ### Input:
-    {movie} was released in the year {2023}. It belongs to the {genre} genres.
+    {title} was released in the year {year}. It belongs to the {genre} genres.
 
     ### Output:
-    {movie} {genre} {year}
+    {title} {genre} {year}
     """
 
     def format_row(self, row):
