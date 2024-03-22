@@ -15,6 +15,7 @@ from llama_index.core import VectorStoreIndex, Settings
 from llama_index.vector_stores.postgres import PGVectorStore
 
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
+
 # from llama_index.embeddings.fastembed import FastEmbedEmbedding
 
 from llama_index.core.response_synthesizers import CompactAndRefine
@@ -23,7 +24,7 @@ from llama_index.core.retrievers import BaseRetriever
 from llama_index.core.response_synthesizers import BaseSynthesizer
 from llama_index.core.indices.service_context import ServiceContext
 from llama_index.core.prompts.base import PromptTemplate
-from typing import Any
+from typing import Any, List
 
 import torch
 import os
@@ -36,16 +37,18 @@ pd.set_option("display.max_colwidth", None)
 
 class CSVDocReader:
     def __init__(
-            self,
-            llm,
-            cfg,
-            vectorstore_name,
+        self,
+        llm,
+        cfg,
+        vectorstore_name,
     ):
         self.df = None
         # self.llm = llm
         self._csv_file_path = cfg.file_path
         self._csv_sep = cfg.sep
-        self._models_path = Path("./models/models--sentence-transformers--all-MiniLM-L6-v2")
+        self._models_path = Path(
+            "./models/models--sentence-transformers--all-MiniLM-L6-v2"
+        )
 
         self.cfg = cfg
         self.vectorstore_path = f"./datastore/{vectorstore_name}"
@@ -59,7 +62,7 @@ class CSVDocReader:
             model_name=model_path,
             cache_folder="./models/",
             device=self.device,
-            normalize=False
+            normalize=False,
         )
         # Settings.embed_model = FastEmbedEmbedding(
         #     "sentence-transformers/all-MiniLM-L6-v2",
@@ -87,7 +90,8 @@ class CSVDocReader:
         )
 
         self.context = StorageContext.from_defaults(vector_store=store)
-        self.vectorstore = VectorStoreIndex.from_vector_store(vector_store=store)
+        self.vectorstore = VectorStoreIndex.from_vector_store(
+            vector_store=store)
 
     def read_tsv(self):
         self.read_tsv_pd()
@@ -106,7 +110,7 @@ class CSVDocReader:
 
 
 class ConversationBot:
-    chat_history = []
+    chat_history: List = []
 
     def __init__(self, llm, vectorstore: VectorStoreIndex, prompt: ChatTemplate):
         self.retriever = vectorstore.as_retriever(
@@ -120,17 +124,22 @@ class ConversationBot:
             system_prompt="System prompt for RAG agent.",
         )
         response_synthesizer = CompactAndRefine(
-            service_context=service_context,
-            streaming=True
+            service_context=service_context, streaming=True
         )
         query_engine = RAGStringQueryEngine(
             retriever=self.retriever,
             response_synthesizer=response_synthesizer,
             llm=llm,
             qa_prompt=prompt.template,
-            chat_history=self.chat_history,
+            chatter=self,
         )
         self.qa = query_engine
+
+    def update_chat_history(self, data):
+        self.chat_history.extend([data])
+
+    def get_chat_history(self):
+        return self.chat_history
 
     def make_conversation(self, query):
         return self.qa.query(query)
@@ -146,15 +155,18 @@ class RAGStringQueryEngine(CustomQueryEngine):
     response_synthesizer: BaseSynthesizer
     llm: Any
     qa_prompt: PromptTemplate
-    chat_history = []
-    streaming = True
+    chatter: ConversationBot
 
     def custom_query(self, query_str: str):
         nodes = self.retriever.retrieve(query_str)
 
         context_str = "\n\n".join([n.node.get_content() for n in nodes])
         response = self.llm.complete(
-            self.qa_prompt.format(context=context_str, question=query_str, chat_history=self.chat_history)
+            self.qa_prompt.format(
+                context=context_str,
+                question=query_str,
+                chat_history=self.chatter.get_chat_history(),
+            )
         )
         # print(response)
 

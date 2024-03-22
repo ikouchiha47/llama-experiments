@@ -9,7 +9,7 @@ read:
 	TOKENIZERS_PARALLELISM=true python3 main.py read
 
 run.cli:
-	python3 main.py run
+	python3 main.py run cli
 
 run.web:
 	streamlit run main.py run web

@@ -3,9 +3,10 @@ from typing import TypeVar
 from llama_index.core.prompts.base import PromptTemplate
 from llama_index.core.prompts.prompt_type import PromptType
 
+
 class ImdbChatPromptTemplate:
     prompt_template = """
-<<SYS>>
+<s>[INST]<<SYS>>
 You are given a list of movies, release date and genre.
 When answering to user, if you do NOT know, just say that you do NOT know.
 Do NOT make up answers from outside the context.
@@ -19,11 +20,12 @@ Context Information is below:
 Chat history is below:
 {chat_history}\n\n
 
-Given the new context and chat history, refine the original answer to better answer the query.
-Do NOT print the question. 
+Given the new context and chat history, refine the original answer to better \
+answer the next query.
+Do NOT print the question.
 <</SYS>>
 
-[INST]
+<s>[INST]
 User: {question}
 [/INST]\n
 Assistant:"""
@@ -37,7 +39,7 @@ Assistant:"""
 
 class IPLChatPromptTemplate:
     prompt_template = """
-<<SYS>>
+<s>[INST]<<SYS>>
 You are given the results of cricket matches played in the Indian \
 Premier League(IPL) season 2023. The winner of IPL 2023 is the \
 winner of the Final.
@@ -55,10 +57,16 @@ Chat history is below:
 {chat_history}\n\n
 
 Given the new context and chat history, refine the original answer to better answer the query.
-Do NOT print the question. 
+Do NOT print the question.
 <</SYS>>
 
-[INST]
+[INST] How many matches were played in IPL Season 2023? [/INST]
+74
+
+[INST] Who won the IPL 2023? [/INST]
+Chennai Super Kings </s>
+
+<s>[INST]
 User: {question}
 [/INST]\n
 Assistant:"""

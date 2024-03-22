@@ -28,7 +28,7 @@ def start_embedding(_llm, _cfg):
     _llama = CSVDocReader(_llm.model, _cfg, _cfg.vectordb_name)
 
     file_size = os.path.getsize(_cfg.file_path)
-    file_size_above_limit = True if file_size > 2e+7 else False
+    file_size_above_limit = True if file_size > 2e7 else False
 
     print("Using dask distributed client?", file_size_above_limit)
 
@@ -43,8 +43,8 @@ if __name__ == "__main__":
 
     llm = TinyLlm()
 
-    cfg = ImdbConfig()
-    # cfg = IPLConfig()
+    # cfg = ImdbConfig()
+    cfg = IPLConfig()
 
     if command == "read":
         start_embedding(llm, cfg)
@@ -60,7 +60,7 @@ if __name__ == "__main__":
     if len(sys.argv) == 2:
         sys.argv[2] = "cli"
 
-    if sys.argv[2] ==  "cli":
+    if sys.argv[2] == "cli":
         ViewRunner.use_cli(bot)
     else:
         ViewRunner.use_st(bot)

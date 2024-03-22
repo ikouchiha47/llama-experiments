@@ -1,12 +1,11 @@
 import os
 
-from dask.distributed import Client, LocalCluster, wait
+from dask.distributed import Client, LocalCluster
 from llama_index.core import VectorStoreIndex, Settings
 from .dataloader import DataLoaderConfig
 
 from llama_index.vector_stores.postgres import PGVectorStore
 from llama_index.core import StorageContext
-from llama_index.embeddings.fastembed import FastEmbedEmbedding
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 
 
@@ -26,7 +25,7 @@ class Embedder:
             model_name=cfg.model_path,
             cache_folder="./models/",
             device=cfg.torch_device,
-            normalize=False
+            normalize=False,
         )
         print("db name ", db_cfg["table_name"])
 
@@ -63,20 +62,16 @@ class Embedder:
             print("using dask distributed client")
             df = self.df.sample(frac=0.01)
 
-            cluster = LocalCluster(
-                memory_limit='2GB'
-            )
+            cluster = LocalCluster(memory_limit="2GB")
             client = Client(cluster)
-            cluster.scale(os.cpu_count() - 1)
+            cluster.scale((os.cpu_count() or 2) - 1)
 
             print(client.dashboard_link)
 
         print("running embedding of documents")
 
         partitions = df.map_partitions(
-            self.index_partition,
-            cfg=self.cfg,
-            meta=(None, 'object')
+            self.index_partition, cfg=self.cfg, meta=(None, "object")
         )
 
         print(df.npartitions)
