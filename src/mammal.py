@@ -15,7 +15,7 @@ from llama_index.core import VectorStoreIndex, Settings
 from llama_index.vector_stores.postgres import PGVectorStore
 
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
-from llama_index.embeddings.fastembed import FastEmbedEmbedding
+# from llama_index.embeddings.fastembed import FastEmbedEmbedding
 
 from llama_index.core.response_synthesizers import CompactAndRefine
 from llama_index.core.query_engine import CustomQueryEngine
@@ -68,8 +68,8 @@ class CSVDocReader:
         # )
         Settings.llm = llm
 
-        # if os.path.exists(str(self._models_path / "config.json")):
-        #     model_path = str(self._models_path)
+        if os.path.exists(str(self._models_path / "config.json")):
+            model_path = str(self._models_path)
 
         transformer = SentenceTransformer(
             model_path,

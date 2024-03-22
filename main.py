@@ -24,16 +24,16 @@ def _validate_cli_args(args):
     sys.exit(1)
 
 
-def start_embedding(llm, cfg):
-    llama = CSVDocReader(llm.model, cfg, cfg.vectordb_name)
+def start_embedding(_llm, _cfg):
+    _llama = CSVDocReader(_llm.model, _cfg, _cfg.vectordb_name)
 
-    file_size = os.path.getsize(cfg.file_path)
+    file_size = os.path.getsize(_cfg.file_path)
     file_size_above_limit = True if file_size > 2e+7 else False
 
-    print("Using dask distributed client ?", file_size_above_limit)
+    print("Using dask distributed client?", file_size_above_limit)
 
-    llama.read_tsv()
-    embedder = Embedder(llama.df, cfg)
+    _llama.read_tsv()
+    embedder = Embedder(_llama.df, _cfg)
     embedder.index_db(use_dask_client=file_size_above_limit)
 
 
@@ -43,8 +43,8 @@ if __name__ == "__main__":
 
     llm = TinyLlm()
 
-    # cfg = ImdbConfig()
-    cfg = IPLConfig()
+    cfg = ImdbConfig()
+    # cfg = IPLConfig()
 
     if command == "read":
         start_embedding(llm, cfg)

@@ -1,12 +1,13 @@
 import os
 
-from dask.distributed import Client, LocalCluster
+from dask.distributed import Client, LocalCluster, wait
 from llama_index.core import VectorStoreIndex, Settings
 from .dataloader import DataLoaderConfig
 
 from llama_index.vector_stores.postgres import PGVectorStore
 from llama_index.core import StorageContext
 from llama_index.embeddings.fastembed import FastEmbedEmbedding
+from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 
 
 class Embedder:
@@ -21,11 +22,13 @@ class Embedder:
 
         db_cfg = cfg.db_config()
 
-        Settings.embed_model = FastEmbedEmbedding(
-            "sentence-transformers/all-MiniLM-L6-v2",
-            cache_dir="./models/",
-            threads=10,
+        Settings.embed_model = HuggingFaceEmbedding(
+            model_name=cfg.model_path,
+            cache_folder="./models/",
+            device=cfg.torch_device,
+            normalize=False
         )
+        print("db name ", db_cfg["table_name"])
 
         store = PGVectorStore.from_params(
             database=db_cfg["database"],
@@ -43,7 +46,7 @@ class Embedder:
         VectorStoreIndex(
             docs,
             storage_context=context,
-            # show_progress=True,
+            show_progress=True,
             # use_async=True
         )
 
@@ -54,25 +57,29 @@ class Embedder:
             raise Exception("UninitializedDataframeException")
 
         client = None
+        df = self.df
 
         if use_dask_client:
             print("using dask distributed client")
+            df = self.df.sample(frac=0.01)
+
             cluster = LocalCluster(
                 memory_limit='2GB'
             )
             client = Client(cluster)
             cluster.scale(os.cpu_count() - 1)
 
-        # print(client.scheduler.address)
+            print(client.dashboard_link)
+
         print("running embedding of documents")
 
-        partitions = self.df.map_partitions(
+        partitions = df.map_partitions(
             self.index_partition,
             cfg=self.cfg,
             meta=(None, 'object')
         )
 
-        print(self.df.npartitions)
+        print(df.npartitions)
         partitions.compute()
 
         if use_dask_client and client is not None:

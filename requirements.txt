@@ -16,6 +16,4 @@ llama-index-llms-llama-cpp
 transformers
 onnxruntime
 optimum[onnxruntime,exporters]
-fastembed
-llama-index-embeddings-fastembed
 streamlit

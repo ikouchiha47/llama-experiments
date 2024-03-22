@@ -3,13 +3,16 @@ from llama_index.core.schema import Document
 
 from typing import TypeVar
 import os
+import torch
 
 T = TypeVar("T", bound="ImdbConfig")
 
 
 class ImdbConfig:
     file_path = "../csv-reading-gpu/datas/title.basics.tsv"
+    model_path = "sentence-transformers/all-MiniLM-L6-v2"  # remote
     blocksize = "25MB"
+    torch_device = "cuda" if torch.cuda.is_available() else "cpu"
     vectordb_name = "imdb_db"
     columns = ["originalTitle", "startYear", "genres"]
     sep = "\t"
@@ -70,7 +73,11 @@ class ImdbConfig:
 
 class IPLConfig:
     file_path = "./datasets/each_match_records.csv"
+    model_path = "sentence-transformers/all-MiniLM-L6-v2"  # remote
+    torch_device = "cuda" if torch.cuda.is_available() else "cpu"
+
     blocksize = "1MB"
+
     vectordb_name = "ipl_db"
     columns = [
         "season",
@@ -111,43 +118,20 @@ class IPLConfig:
 paired with an input that provides further context.
 
 ### Instruction:
-Summarise the results of IPL season {season} match number {match_number}.
+Summarise the results of IPL season {{season}} match number {{match_number}}.
     
 ### Input:
-Match was played between {team1} and {team2} at {venue} on {date} (dd-mm-yyyy).\
- It was a {match_type} match.
- {toss_won} won the toss and decided to {decision}.
+Match was played between {{team1}} and {{team2}} at {{venue}} on {{date}} (dd-mm-yyyy).\
+ It was a {{match_type}} match.
+{{toss_won}} won the toss and decided to {{decision}}.
     
 ### Output:
-{winner} won the {match_type} match and {loser} lost the match.
+Match number {{match_number}}, {{match_type}} match, was won by {{winner}} and lost by {{loser}}.
+{{winner}} won the {{match_type}} match and {{loser}} lost the {{match_type}} match.
+{% if final_match == True %}
+{{winner}} won the IPL season {{season}}.
+{% endif %}
 """
-
-    #     template = """
-    # Match {match_number} was played between {team1} and {team2} \
-    # in IPL {season}.
-    # The match was held at {venue} on {date} (dd-mm-yyyy).
-    # {toss_won} won the toss and decided to {decision}. \
-    # It was a {match_type} match. {winner} won the match {match_number}.</s>
-    #     """
-
-    #     template = """
-    # <|prompt|>
-    # Who played in match {match_number} in IPL {season}?</s>
-    # <|assistant|>
-    # Match number {match_number} was played between {team1} and {team2}.</s>
-    #
-    # <|prompt|>
-    # Where was the match {match_number} played in IPL {season}?</s>
-    # <|assistant|>
-    # The match was held at {venue} on {date} (dd-mm-yyyy).</s>
-    #
-    # <|prompt|>
-    # Which team won the match {match_number}?</s>
-    # <|assistant|>
-    # Match {match_number} was a {match_type} match. \
-    # {toss_won} decided to {decision}, and {winner} won the match,\
-    # {loser} lost the match</s>
-    #     """
 
     @staticmethod
     def db_config(vector_dimension=384):
@@ -159,11 +143,10 @@ Match was played between {team1} and {team2} at {venue} on {date} (dd-mm-yyyy).\
             "user": os.environ.get("POSTGRES_USER", "testuser"),
             "table_name": "ipl_db",
             "embed_dim": vector_dimension,
-
         }
 
     def format_row(self, row):
-        prompt = PromptTemplate.from_template(self.template)
+        prompt = PromptTemplate.from_template(self.template, template_format="jinja2")
         teams = {row.team1, row.team2}
         lost = teams - {row.winner}
 
@@ -171,6 +154,8 @@ Match was played between {team1} and {team2} at {venue} on {date} (dd-mm-yyyy).\
             return ""
 
         loser = lost.pop()
+        final_match = row.match_type == 'Final' or row.match_type == 'final'
+
         data = prompt.format(
             season=row.season,
             date=row.date,
@@ -183,24 +168,9 @@ Match was played between {team1} and {team2} at {venue} on {date} (dd-mm-yyyy).\
             decision=row.toss_decision,
             winner=row.winner,
             loser=loser,
+            final_match=final_match,
         )
-        # node = TextNode(
-        #     text=data,
-        #     metadata={
-        #         "season": row.season,
-        #         "date": row.date,
-        #         "match_number": row.match_number,
-        #         "match_type": row.match_type,
-        #         "team1": row.team1,
-        #         "team2": row.team2,
-        #         "venue": row.venue,
-        #         "toss_won": row.toss_won,
-        #         "decision": row.toss_decision,
-        #         "winner": row.winner,
-        #         "loser": loser,
-        #     }
-        # )
-        #
+
         node = Document(
             text=data,
             metadata={

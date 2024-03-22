@@ -39,14 +39,14 @@ class IPLChatPromptTemplate:
     prompt_template = """
 <<SYS>>
 You are given the results of cricket matches played in the Indian \
-Premier League(IPL) season 2023. The winner of the season is the \
-winner of the final match.
+Premier League(IPL) season 2023. The winner of IPL 2023 is the \
+winner of the Final.
 
 When answering to user, if you do NOT know, just say that you do NOT know.
 Do NOT make up answers from outside the context.
 
 Avoid mentioning that you obtained the information from the context.
-And answer according to the language of the user's question.
+Answer according to the language of the user's question.
 
 Context Information is below:
 {context}\n\n
