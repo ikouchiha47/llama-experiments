@@ -20,6 +20,7 @@ This works on CPU. And can be extended to GPU
 ```bash
 make setup
 make download.models # optional
-make run
+make run.cli # for chatting with cli
+make run.web # uses streamlit UI
 ```
 
