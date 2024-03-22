@@ -8,8 +8,11 @@ pg.install:
 read:
 	TOKENIZERS_PARALLELISM=true python3 main.py read
 
-run:
+run.cli:
 	python3 main.py run
+
+run.web:
+	streamlit run main.py run web
 
 freeze:
 	pip freeze > requirements.lock.txt

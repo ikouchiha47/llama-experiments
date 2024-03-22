@@ -1,51 +1,66 @@
 import sys
 from src.llm import TinyLlm
 from src.mammal import (
-    TinyLamaUniverse,
+    CSVDocReader,
     ConversationBot,
 )
+from src.embedder import Embedder
 from src.templates import ImdbChatPromptTemplate, IPLChatPromptTemplate
+from src.view import ViewRunner
 
 from src.dataloader import ImdbConfig, IPLConfig
-
+import os
 
 Usage = """
 python3 main.py [read, run]
 """
 
-if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print("Invalid command")
-        print(Usage)
-        sys.exit(1)
 
+def _validate_cli_args(args):
+    if len(args) >= 2:
+        return True
+
+    print(Usage)
+    sys.exit(1)
+
+
+def start_embedding(llm, cfg):
+    llama = CSVDocReader(llm.model, cfg, cfg.vectordb_name)
+
+    file_size = os.path.getsize(cfg.file_path)
+    file_size_above_limit = True if file_size > 2e+7 else False
+
+    print("Using dask distributed client ?", file_size_above_limit)
+
+    llama.read_tsv()
+    embedder = Embedder(llama.df, cfg)
+    embedder.index_db(use_dask_client=file_size_above_limit)
+
+
+if __name__ == "__main__":
+    _validate_cli_args(sys.argv)
     command = sys.argv[1]
 
     llm = TinyLlm()
-    cfg = ImdbConfig()
-    # cfg = IPLConfig()
 
-    llama = TinyLamaUniverse(llm.model, cfg, cfg.vectordb_name)
+    # cfg = ImdbConfig()
+    cfg = IPLConfig()
 
     if command == "read":
-        llama.read_tsv()
-        llama.index_db(cfg.meta_keys)
+        start_embedding(llm, cfg)
+        print("reading and embedding complete")
         sys.exit(0)
 
     # prompt_template = IPLChatPromptTemplate()
     prompt_template = ImdbChatPromptTemplate()
 
-    # llama.load_vector_store_local()
-    # llama.build_qa(llama.vectorstore, prompt_template)
+    llama = CSVDocReader(llm.model, cfg, cfg.vectordb_name)
+    bot = ConversationBot(llm.model, llama.vectorstore, prompt_template)
 
-    bot = ConversationBot(llama.llm, llama.vectorstore, prompt_template)
+    if len(sys.argv) == 2:
+        sys.argv[2] = "cli"
 
-    while True:
-        query = input("Input Prompt: ")
-        if query == "exit":
-            sys.exit(0)
-
-        if query == "":
-            continue
-
-        bot.make_conversation(query)
+    if sys.argv[2] ==  "cli":
+        ViewRunner.use_cli(bot)
+    else:
+        ViewRunner.use_st(bot)

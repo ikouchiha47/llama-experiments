@@ -42,11 +42,11 @@ class TinyLlm:
                     "context_window": 2048,
                     "n_ctx": 1024,
                     "n_batch": 100,
-                    "n_threads": 8,
+                    "n_threads": 4,
                     "n_gpu_layers": 0,
                     "callbacks": [StreamingStdOutCallbackHandler()],
                     "low_memory": True,
                     # repeat_penalty = 1.2,
-            },
+                },
                 verbose=self.verbose,
             )

@@ -13,7 +13,10 @@ import dask.dataframe as dd
 from llama_index.core import SimpleDirectoryReader, StorageContext
 from llama_index.core import VectorStoreIndex, Settings
 from llama_index.vector_stores.postgres import PGVectorStore
+
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
+from llama_index.embeddings.fastembed import FastEmbedEmbedding
+
 from llama_index.core.response_synthesizers import CompactAndRefine
 from llama_index.core.query_engine import CustomQueryEngine
 from llama_index.core.retrievers import BaseRetriever
@@ -31,7 +34,7 @@ from .templates import ChatTemplate
 pd.set_option("display.max_colwidth", None)
 
 
-class TinyLamaUniverse:
+class CSVDocReader:
     def __init__(
             self,
             llm,
@@ -39,29 +42,39 @@ class TinyLamaUniverse:
             vectorstore_name,
     ):
         self.df = None
-        self.llm = llm
-        self.csv_file_path = cfg.file_path
-        self.csv_sep = cfg.sep
+        # self.llm = llm
+        self._csv_file_path = cfg.file_path
+        self._csv_sep = cfg.sep
+        self._models_path = Path("./models/models--sentence-transformers--all-MiniLM-L6-v2")
+
         self.cfg = cfg
         self.vectorstore_path = f"./datastore/{vectorstore_name}"
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        self.qa = None
-        self.embeddings = None
-        self.merged_index = None
-        # self.models_path = Path("./models/models--sentence-transformers--all-MiniLM-L6-v2")
-        self.models_path = Path("./models--sentence-transformers/all-MiniLM-L6-v2")
         self.vectorstore_name = vectorstore_name
         # Use a DataStore interface here
 
-        self.__load_transformer()
+        model_path = "sentence-transformers/all-MiniLM-L6-v2"  # remote
 
         Settings.embed_model = HuggingFaceEmbedding(
-            "sentence-transformers/all-MiniLM-L6-v2",
+            model_name=model_path,
             cache_folder="./models/",
             device=self.device,
             normalize=False
         )
-        Settings.llm = self.llm
+        # Settings.embed_model = FastEmbedEmbedding(
+        #     "sentence-transformers/all-MiniLM-L6-v2",
+        #     cache_dir="./models/",
+        #     threads=10,
+        # )
+        Settings.llm = llm
+
+        # if os.path.exists(str(self._models_path / "config.json")):
+        #     model_path = str(self._models_path)
+
+        transformer = SentenceTransformer(
+            model_path,
+            device=self.device,
+        )
 
         store = PGVectorStore.from_params(
             database=os.environ.get("POSTGRES_DB", "vectordb"),
@@ -70,73 +83,26 @@ class TinyLamaUniverse:
             port="5433",
             user=os.environ.get("POSTGRES_USER", "testuser"),
             table_name=self.vectorstore_name,
-            embed_dim=self.transformer.get_sentence_embedding_dimension(),
+            embed_dim=transformer.get_sentence_embedding_dimension(),
         )
 
         self.context = StorageContext.from_defaults(vector_store=store)
         self.vectorstore = VectorStoreIndex.from_vector_store(vector_store=store)
-
-    def __load_transformer(self):
-        model_path = "sentence-transformers/all-MiniLM-L6-v2"  # remote
-        if os.path.exists(str(self.models_path / "config.json")):
-            model_path = str(self.models_path)
-
-        self.transformer = SentenceTransformer(
-            model_path,
-            device=self.device,
-        )
 
     def read_tsv(self):
         self.read_tsv_pd()
 
     def read_tsv_pd(self):
         df = dd.read_csv(
-            self.csv_file_path,
-            sep=self.csv_sep,
-            # dtype=str,
+            self._csv_file_path,
+            sep=self._csv_sep,
             dtype=self.cfg.meta_keys,
             usecols=self.cfg.columns,
             blocksize=self.cfg.blocksize,
         )
 
-        # self.embeddings = HuggingFaceEmbeddings(
-        #     model_name="sentence-transformers/all-MiniLM-L6-v2",
-        #     model_kwargs={"device": self.device},
-        #     encode_kwargs={"normalize_embeddings": False},
-        # )
-        # print(df.memory_usage(deep=True))
-
         self.df = df
         return self
-
-    def __index_partition(self, partition):
-        # print("indexing partition...")
-        partition = partition.dropna()
-        result = partition.apply(self.cfg.format_row, axis=1)
-
-        docs = result.tolist()
-
-        VectorStoreIndex(
-            docs,
-            storage_context=self.context,
-            show_progress=True,
-            # use_async=True
-        )
-
-        # self.vectorstore.insert_nodes(result.tolist())
-        return result
-
-    def index_db(self, meta_keys={}):
-        if self.df is None:
-            raise Exception("UninitializedDataframeException")
-
-        partitions = self.df.map_partitions(
-            self.__index_partition,
-            meta=(None, 'object')
-        )
-
-        print(self.df.npartitions)
-        partitions.compute()
 
 
 class ConversationBot:
@@ -147,9 +113,12 @@ class ConversationBot:
             vector_store_query_mode="default",
             similarity_top_k=2,
         )
-        #
         # self.retriever = retriever
-        service_context = ServiceContext.from_defaults(llm=llm, embed_model="local")
+        service_context = ServiceContext.from_defaults(
+            llm=llm,
+            embed_model="local",
+            system_prompt="System prompt for RAG agent.",
+        )
         response_synthesizer = CompactAndRefine(
             service_context=service_context,
             streaming=True
@@ -164,7 +133,7 @@ class ConversationBot:
         self.qa = query_engine
 
     def make_conversation(self, query):
-        print(self.qa.query(query))
+        return self.qa.query(query)
 
     def clear_chat(self):
         self.chat_history = []

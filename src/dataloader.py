@@ -2,13 +2,14 @@ from langchain_core.prompts import PromptTemplate
 from llama_index.core.schema import Document
 
 from typing import TypeVar
+import os
 
 T = TypeVar("T", bound="ImdbConfig")
 
 
 class ImdbConfig:
     file_path = "../csv-reading-gpu/datas/title.basics.tsv"
-    blocksize = "12MB"
+    blocksize = "25MB"
     vectordb_name = "imdb_db"
     columns = ["originalTitle", "startYear", "genres"]
     sep = "\t"
@@ -35,6 +36,19 @@ class ImdbConfig:
     {title} {genre} {year}
     """
 
+    @staticmethod
+    def db_config(vector_dimension=384):
+        return {
+            "database": os.environ.get("POSTGRES_DB", "vectordb"),
+            "host": os.environ.get("POSTGRES_DB_HOST", "localhost"),
+            "password": os.environ.get("POSTGRES_PASSWORD", "testpwd"),
+            "port": "5433",
+            "user": os.environ.get("POSTGRES_USER", "testuser"),
+            "table_name": "imdb_db",
+            "embed_dim": vector_dimension,
+
+        }
+
     def format_row(self, row):
         prompt = PromptTemplate.from_template(self.template)
         data = prompt.format(
@@ -56,7 +70,7 @@ class ImdbConfig:
 
 class IPLConfig:
     file_path = "./datasets/each_match_records.csv"
-    blocksize = "128KB"
+    blocksize = "1MB"
     vectordb_name = "ipl_db"
     columns = [
         "season",
@@ -134,6 +148,20 @@ Match was played between {team1} and {team2} at {venue} on {date} (dd-mm-yyyy).\
     # {toss_won} decided to {decision}, and {winner} won the match,\
     # {loser} lost the match</s>
     #     """
+
+    @staticmethod
+    def db_config(vector_dimension=384):
+        return {
+            "database": os.environ.get("POSTGRES_DB", "vectordb"),
+            "host": os.environ.get("POSTGRES_DB_HOST", "localhost"),
+            "password": os.environ.get("POSTGRES_PASSWORD", "testpwd"),
+            "port": "5433",
+            "user": os.environ.get("POSTGRES_USER", "testuser"),
+            "table_name": "ipl_db",
+            "embed_dim": vector_dimension,
+
+        }
+
     def format_row(self, row):
         prompt = PromptTemplate.from_template(self.template)
         teams = {row.team1, row.team2}
