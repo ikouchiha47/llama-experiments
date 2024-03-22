@@ -3,13 +3,13 @@
 # from langchain.memory import ConversationBufferMemory
 # from langchain.chains import ConversationalRetrievalChain
 # from langchain_community.embeddings import HuggingFaceEmbeddings
+# import numpy as np
+# from sqlalchemy import make_url
 
 from sentence_transformers import SentenceTransformer
 import pandas as pd
 import dask.dataframe as dd
-# import numpy as np
 
-# from sqlalchemy import make_url
 from llama_index.core import SimpleDirectoryReader, StorageContext
 from llama_index.core import VectorStoreIndex, Settings
 from llama_index.vector_stores.postgres import PGVectorStore
@@ -22,7 +22,6 @@ from llama_index.core.indices.service_context import ServiceContext
 from llama_index.core.prompts.base import PromptTemplate
 from typing import Any
 
-
 import torch
 import os
 from pathlib import Path
@@ -30,29 +29,6 @@ from pathlib import Path
 from .templates import ChatTemplate
 
 pd.set_option("display.max_colwidth", None)
-
-
-
-class RAGStringQueryEngine(CustomQueryEngine):
-    """RAG String Query Engine."""
-
-    retriever: BaseRetriever
-    response_synthesizer: BaseSynthesizer
-    llm: Any
-    qa_prompt: PromptTemplate
-    chat_history = []
-    streaming = True
-
-    def custom_query(self, query_str: str):
-        nodes = self.retriever.retrieve(query_str)
-
-        context_str = "\n\n".join([n.node.get_content() for n in nodes])
-        response = self.llm.complete(
-            self.qa_prompt.format(context=context_str, question=query_str, chat_history=self.chat_history)
-        )
-        # print(response)
-
-        return str(response)
 
 
 class TinyLamaUniverse:
@@ -72,7 +48,8 @@ class TinyLamaUniverse:
         self.qa = None
         self.embeddings = None
         self.merged_index = None
-        self.models_path = Path("./models/sentence-transformers/all-MiniLM-L6-v2")
+        # self.models_path = Path("./models/models--sentence-transformers--all-MiniLM-L6-v2")
+        self.models_path = Path("./models--sentence-transformers/all-MiniLM-L6-v2")
         self.vectorstore_name = vectorstore_name
         # Use a DataStore interface here
 
@@ -139,11 +116,11 @@ class TinyLamaUniverse:
 
         docs = result.tolist()
 
-        VectorStoreIndex(  # .from_documents
+        VectorStoreIndex(
             docs,
             storage_context=self.context,
             show_progress=True,
-            use_async=True
+            # use_async=True
         )
 
         # self.vectorstore.insert_nodes(result.tolist())
@@ -191,3 +168,25 @@ class ConversationBot:
 
     def clear_chat(self):
         self.chat_history = []
+
+
+class RAGStringQueryEngine(CustomQueryEngine):
+    """RAG String Query Engine."""
+
+    retriever: BaseRetriever
+    response_synthesizer: BaseSynthesizer
+    llm: Any
+    qa_prompt: PromptTemplate
+    chat_history = []
+    streaming = True
+
+    def custom_query(self, query_str: str):
+        nodes = self.retriever.retrieve(query_str)
+
+        context_str = "\n\n".join([n.node.get_content() for n in nodes])
+        response = self.llm.complete(
+            self.qa_prompt.format(context=context_str, question=query_str, chat_history=self.chat_history)
+        )
+        # print(response)
+
+        return str(response)
