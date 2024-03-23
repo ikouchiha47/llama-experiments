@@ -1,0 +1,11 @@
+*.pyc
+*.svg
+.DS_Store
+
+.idea/
+.venv/
+.venv*
+models/**
+**__pycache__/
+
+!models/.keep
