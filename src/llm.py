@@ -44,14 +44,14 @@ class CodeLlamaModel:
     model_file = "codellama-7b.Q5_K_S.gguf"
 
 
-model = MistralModel()
+model = CodeLlamaModel()
 
 tiny_model_name = model.model_name
 tiny_model_file = model.model_file
 
 
 class TinyLlm:
-    @suppress_error_output
+    # @suppress_error_output
     def __init__(self, model_name=tiny_model_name, model_file=tiny_model_file):
         self.model_name = model_name
         self.model_file = model_file
@@ -70,7 +70,7 @@ class TinyLlm:
             streaming=True,
             max_tokens=2048,
             n_ctx=2048,
-            context_window=4096,
+            # context_window=4096,
             verbose=self.verbose,
         )
 
