@@ -6,7 +6,10 @@ from langchain_openai import ChatOpenAI
 from huggingface_hub import hf_hub_download
 from contextlib import contextmanager, redirect_stderr, redirect_stdout
 from os import devnull
+import torch
+from .utils import get_device
 
+from transformers import AutoModelForCausalLM
 
 @contextmanager
 def suppress_stdout_stderr():
@@ -33,14 +36,9 @@ class MistralModel:
     model_name = "TheBloke/Mistral-7B-Instruct-v0.1-GGUF"
     model_file = "mistral-7b-instruct-v0.1.Q5_K_M.gguf"
 
-
-class LlamaChatModel:
-    model_name = "TheBloke/Llama-2-7B-Chat-GGUF"
-    model_file = "llama-2-7b-chat.Q5_K_S.gguf"
-
-
 class CodeLlamaModel:
     model_name = "TheBloke/CodeLlama-7B-GGUF"
+    t_model_name = "codellama/CodeLlama-7b-Instruct-hf"
     model_file = "codellama-7b.Q5_K_S.gguf"
 
 
@@ -50,30 +48,33 @@ tiny_model_name = model.model_name
 tiny_model_file = model.model_file
 
 
-class TinyLlm:
+class LanguageModelLoader:
     # @suppress_error_output
     def __init__(self, model_name=tiny_model_name, model_file=tiny_model_file):
         self.model_name = model_name
         self.model_file = model_file
         self.verbose = False
 
-        self.model_path = hf_hub_download(model_name, filename=model_file, cache_dir="./models/")
+        # self.model_path = hf_hub_download(model_name, filename=model_file, cache_dir="./models/")
         # callback_manager = CallbackManager([StreamingStdOutCallbackHandler()])
-        callback_manager = [FinalStreamingStdOutCallbackHandler()]
+        # callback_manager = [FinalStreamingStdOutCallbackHandler()]
 
-        self.model = LlamaCpp(
-            model_path=self.model_path,
-            temperature=0,
-            callbacks=callback_manager,
-            n_batch=100,
-            n_gpu_layers=1,
-            streaming=True,
-            max_tokens=2048,
-            n_ctx=2048,
-            # context_window=4096,
-            verbose=self.verbose,
-        )
+        # self.model = LlamaCpp(
+        #     model_path=self.model_path,
+        #     temperature=0,
+        #     callbacks=callback_manager,
+        #     n_batch=100,
+        #     n_gpu_layers=0,
+        #     streaming=True,
+        #     max_tokens=2048,
+        #     n_ctx=4096,
+        #     # context_window=4096,
+        #     verbose=self.verbose,
+        # )
 
-class OpenAILlm:
-    def __init__(self):
-        self.model = ChatOpenAI(temperature=0, model="gpt-3.5-turbo-0613")
+        _model = AutoModelForCausalLM.from_pretrained(
+            model.t_model_name,
+            trust_remote_code=True,
+            torch_dtype=torch.float16
+        ).to(get_device())
+        self.model = _model.to_bettertransformer()
