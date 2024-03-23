@@ -16,17 +16,12 @@ from llama_index.vector_stores.postgres import PGVectorStore
 
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 
-# from llama_index.embeddings.fastembed import FastEmbedEmbedding
+from llama_index.core.chat_engine import CondenseQuestionChatEngine
+from llama_index.core.memory import ChatMemoryBuffer
 
-from llama_index.core.response_synthesizers import CompactAndRefine
-from llama_index.core.query_engine import CustomQueryEngine
-from llama_index.core.retrievers import BaseRetriever
-from llama_index.core.response_synthesizers import BaseSynthesizer
 from llama_index.core.indices.service_context import ServiceContext
-from llama_index.core.prompts.base import PromptTemplate
-from typing import Any, List
+from typing import List
 
-import torch
 import os
 from pathlib import Path
 
@@ -52,16 +47,16 @@ class CSVDocReader:
 
         self.cfg = cfg
         self.vectorstore_path = f"./datastore/{vectorstore_name}"
-        self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.vectorstore_name = vectorstore_name
-        # Use a DataStore interface here
 
-        model_path = "sentence-transformers/all-MiniLM-L6-v2"  # remote
+        # model_path = "sentence-transformers/all-MiniLM-L6-v2"  # remote
+
+        print("device", self.cfg.torch_device)
 
         Settings.embed_model = HuggingFaceEmbedding(
-            model_name=model_path,
+            model_name=cfg.model_path,
             cache_folder="./models/",
-            device=self.device,
+            device=self.cfg.torch_device,
             normalize=False,
         )
         # Settings.embed_model = FastEmbedEmbedding(
@@ -71,12 +66,13 @@ class CSVDocReader:
         # )
         Settings.llm = llm
 
+        model_path = cfg.model_path
         if os.path.exists(str(self._models_path / "config.json")):
             model_path = str(self._models_path)
 
         transformer = SentenceTransformer(
             model_path,
-            device=self.device,
+            device=self.cfg.torch_device,
         )
 
         store = PGVectorStore.from_params(
@@ -90,8 +86,7 @@ class CSVDocReader:
         )
 
         self.context = StorageContext.from_defaults(vector_store=store)
-        self.vectorstore = VectorStoreIndex.from_vector_store(
-            vector_store=store)
+        self.vectorstore = VectorStoreIndex.from_vector_store(vector_store=store)
 
     def read_tsv(self):
         self.read_tsv_pd()
@@ -115,25 +110,34 @@ class ConversationBot:
     def __init__(self, llm, vectorstore: VectorStoreIndex, prompt: ChatTemplate):
         self.retriever = vectorstore.as_retriever(
             vector_store_query_mode="default",
-            similarity_top_k=2,
+            similarity_top_k=0.2,
         )
-        # self.retriever = retriever
+
         service_context = ServiceContext.from_defaults(
             llm=llm,
             embed_model="local",
             system_prompt="System prompt for RAG agent.",
         )
-        response_synthesizer = CompactAndRefine(
-            service_context=service_context, streaming=True
+        # response_synthesizer = CompactAndRefine(
+        #     service_context=service_context, streaming=True
+        # )
+        # query_engine = RAGStringQueryEngine(
+        #     retriever=self.retriever,
+        #     response_synthesizer=response_synthesizer,
+        #     llm=llm,
+        #     qa_prompt=prompt.template,
+        # )
+
+        memory = ChatMemoryBuffer.from_defaults(token_limit=2048)
+
+        self.qa = CondenseQuestionChatEngine.from_defaults(
+            query_engine=vectorstore.as_query_engine(),
+            condense_question_prompt=prompt.template,
+            chat_history=self.chat_history,
+            service_context=service_context,
+            verbose=False,
+            memory=memory,
         )
-        query_engine = RAGStringQueryEngine(
-            retriever=self.retriever,
-            response_synthesizer=response_synthesizer,
-            llm=llm,
-            qa_prompt=prompt.template,
-            chatter=self,
-        )
-        self.qa = query_engine
 
     def update_chat_history(self, data):
         self.chat_history.extend([data])
@@ -142,32 +146,10 @@ class ConversationBot:
         return self.chat_history
 
     def make_conversation(self, query):
-        return self.qa.query(query)
+        # response = self.qa.stream_chat(query)
+        # for token in response.response_gen:
+        #     yield token
+        return self.qa.chat(query)
 
     def clear_chat(self):
         self.chat_history = []
-
-
-class RAGStringQueryEngine(CustomQueryEngine):
-    """RAG String Query Engine."""
-
-    retriever: BaseRetriever
-    response_synthesizer: BaseSynthesizer
-    llm: Any
-    qa_prompt: PromptTemplate
-    chatter: ConversationBot
-
-    def custom_query(self, query_str: str):
-        nodes = self.retriever.retrieve(query_str)
-
-        context_str = "\n\n".join([n.node.get_content() for n in nodes])
-        response = self.llm.complete(
-            self.qa_prompt.format(
-                context=context_str,
-                question=query_str,
-                chat_history=self.chatter.get_chat_history(),
-            )
-        )
-        # print(response)
-
-        return str(response)

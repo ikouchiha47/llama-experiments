@@ -25,9 +25,10 @@ class Embedder:
             model_name=cfg.model_path,
             cache_folder="./models/",
             device=cfg.torch_device,
-            normalize=False,
+            normalize=True,
+            max_length=512,
         )
-        print("db name ", db_cfg["table_name"])
+        # print("db name ", db_cfg["table_name"])
 
         store = PGVectorStore.from_params(
             database=db_cfg["database"],

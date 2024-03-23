@@ -1,10 +1,11 @@
 services:
   db:
-    hostname: db
+    hostname: db-2
     image: ankane/pgvector
     ports:
      - 5433:5432
     restart: always
+    command: ["postgres", "-c", "log_statement=all"]
     environment:
       - POSTGRES_DB=vectordb
       - POSTGRES_DB_HOST=localhost

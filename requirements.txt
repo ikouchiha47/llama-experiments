@@ -17,3 +17,4 @@ transformers
 onnxruntime
 optimum[onnxruntime,exporters]
 streamlit
+wheel

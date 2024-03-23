@@ -14,19 +14,25 @@ class ViewRunner:
                 continue
 
             response = bot.make_conversation(query)
-            bot.update_chat_history(["assistant", str(response)])
-            print("Assistant: ", response)
+            print("Assistant:", response)
+            # print("Assistant:", end=" ")
+            # data = []
+            # for text in response:
+            #     data.append(text)
+            #     print(text, end=" ")
+            # print("")
+            # bot.update_chat_history(["assistant", str(response)])
 
     @staticmethod
     def use_st(bot):
         st.set_page_config(
-            page_title="Build a RAGs bot, powered by LlamaIndex",
+            page_title="RAG-ai Llama",
             page_icon="🦙",
             layout="centered",
             initial_sidebar_state="auto",
             menu_items=None,
         )
-        st.title("Build a RAGs bot, powered by LlamaIndex 💬🦙")
+        st.title("RAG-ai Llama 💬🦙")
         if (
             "messages" not in st.session_state.keys()
         ):  # Initialize the chat messages history
@@ -65,6 +71,5 @@ class ViewRunner:
                             response = bot.make_conversation(prompt)
                             # response = current_state.builder_agent.chat(prompt)
                             st.write(str(response))
-                            bot.update_chat_history(
-                                ["assistant", str(response)])
+                            bot.update_chat_history(["assistant", str(response)])
                             add_to_message_history("assistant", str(response))

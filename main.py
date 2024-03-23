@@ -1,4 +1,5 @@
 import sys
+
 from src.llm import TinyLlm
 from src.mammal import (
     CSVDocReader,
@@ -51,8 +52,8 @@ if __name__ == "__main__":
         print("reading and embedding complete")
         sys.exit(0)
 
-    # prompt_template = IPLChatPromptTemplate()
-    prompt_template = ImdbChatPromptTemplate()
+    prompt_template = IPLChatPromptTemplate()
+    # prompt_template = ImdbChatPromptTemplate()
 
     llama = CSVDocReader(llm.model, cfg, cfg.vectordb_name)
     bot = ConversationBot(llm.model, llama.vectorstore, prompt_template)
