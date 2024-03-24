@@ -13,6 +13,7 @@ from prompt_toolkit.history import FileHistory
 from langchain.agents.agent_types import AgentType
 from langchain.input import get_colored_text
 import pandas as pd
+from pandasai import SmartDataframe
 
 from langchain.callbacks.streaming_stdout_final_only import FinalStreamingStdOutCallbackHandler
 from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
@@ -73,27 +74,27 @@ class CliViewer:
         print("getting llm model")
         _llm = LanguageModelLoader()
         # _llm = OpenAILlm()
-        # chat_memory = PandasChatMemory(_llm.model)
+        chat_memory = PandasChatMemory(_llm.model)
         #
         # print("initializing pandas agent")
-        # self.agent = create_pandas_dataframe_agent(
-        #     llm=_llm.model,
-        #     df=self.df,
-        #     # extra_tools=[PythonREPLTool()],
-        #     # suffix=SUFFIX_WITH_DF,
-        #     agent_type=AgentType.ZERO_SHOT_REACT_DESCRIPTION,
-        #     prefix=TEMPLATE,
-        #     early_stopping_method='generate',
-        #     max_iterations=5,
-        #     include_df_in_prompt=True,
-        #     agent_executor_kwargs={
-        #         'handling_parsing_errors': "Check your output and make sure it conforms!",
-        #         'memory': chat_memory.memory,
-        #     },
-        #     verbose=True,
-        # )
+        self.agent = create_pandas_dataframe_agent(
+            llm=_llm.model,
+            df=self.df,
+            # extra_tools=[PythonREPLTool()],
+            # suffix=SUFFIX_WITH_DF,
+            agent_type=AgentType.ZERO_SHOT_REACT_DESCRIPTION,
+            prefix=TEMPLATE,
+            early_stopping_method='generate',
+            max_iterations=5,
+            include_df_in_prompt=True,
+            agent_executor_kwargs={
+                'handling_parsing_errors': "Check your output and make sure it conforms!",
+                'memory': chat_memory.memory,
+            },
+            verbose=True,
+        )
 
-        df = SmartDataframe(self.file_name, config={"llm": _llm.model})
+        # df = SmartDataframe(self.file_name, config={"llm": _llm.model})
 
         print("pandas agent loading complete")
         # session = PromptSession(history=FileHistory(".agent-history-file"))
@@ -101,9 +102,9 @@ class CliViewer:
         question = "How many matches did Chennai Super Kings win and lose?"
 
         print("invoking agent")
-        # result = self.agent.invoke({"input": question}, callbacks=[StreamingStdOutCallbackHandler()])
-
-        print("reesult, ", df.chat(question, "string"))
+        result = self.agent.invoke({"input": question}, callbacks=[StreamingStdOutCallbackHandler()])
+        print("result", result)
+        # print("reesult, ", df.chat(question, "string"))
         # print(get_colored_text(result["output"], "green"))
 
         # question = session.prompt(

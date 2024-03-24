@@ -5,7 +5,9 @@ langchain-experimental~=0.0.55
 streamlit~=1.32.2
 huggingface-hub
 pandas~=2.2.1
-prompt_toolkit~=3.0.43
 networkx~=3.2.1
 transformers
 optimum[onnxruntime]
+accelerate
+bitsandbytes
+pandasai

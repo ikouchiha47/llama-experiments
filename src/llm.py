@@ -9,7 +9,8 @@ from os import devnull
 import torch
 from .utils import get_device
 
-from transformers import AutoModelForCausalLM
+from transformers import AutoModelForCausalLM, BitsAndBytesConfig
+
 
 @contextmanager
 def suppress_stdout_stderr():
@@ -35,6 +36,7 @@ class TinyLlamaModel:
 class MistralModel:
     model_name = "TheBloke/Mistral-7B-Instruct-v0.1-GGUF"
     model_file = "mistral-7b-instruct-v0.1.Q5_K_M.gguf"
+
 
 class CodeLlamaModel:
     model_name = "TheBloke/CodeLlama-7B-GGUF"
@@ -71,10 +73,13 @@ class LanguageModelLoader:
         #     # context_window=4096,
         #     verbose=self.verbose,
         # )
-
-        _model = AutoModelForCausalLM.from_pretrained(
+        quantization_config = BitsAndBytesConfig(
+            load_in_8bit=True,
+            llm_int8_threshold=100.0)
+        self.model = AutoModelForCausalLM.from_pretrained(
             model.t_model_name,
             trust_remote_code=True,
-            torch_dtype=torch.float16
-        ).to(get_device())
-        self.model = _model.to_bettertransformer()
+            torch_dtype=torch.float16,
+            quantization_config=quantization_config,
+        )
+        # self.model = _model.to_bettertransformer()
