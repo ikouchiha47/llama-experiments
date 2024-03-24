@@ -20,7 +20,7 @@ from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
 from langchain_experimental.tools import PythonREPLTool
 from langchain_experimental.agents.agent_toolkits.pandas.prompt import SUFFIX_WITH_DF
 
-from ..llm import LanguageModelLoader
+from ..llm import LanguageModelLoader, LanguageModelLoaderGPU
 
 
 class PandasChatMemory:
@@ -31,34 +31,34 @@ class PandasChatMemory:
             input_key="input"
         )
 
-        history = ChatMessageHistory()
-        chat_history_summary = ConversationSummaryMemory.from_messages(
-            llm=llm,
-            memory_key="chat_history_summary",
-            input_key="input",
-            chat_memory=history
-        )
+        # history = ChatMessageHistory()
+        # chat_history_summary = ConversationSummaryMemory.from_messages(
+        #     llm=llm,
+        #     memory_key="chat_history_summary",
+        #     input_key="input",
+        #     chat_memory=history
+        # )
 
-        chat_history_KG = ConversationKGMemory(
-            llm=llm,
-            memory_key="chat_history_KG",
-            input_key="input",
-        )
-
-        self.memory = CombinedMemory(memories=[chat_history_buffer, chat_history_summary, chat_history_KG])
+        # chat_history_KG = ConversationKGMemory(
+        #     llm=llm,
+        #     memory_key="chat_history_KG",
+        #     input_key="input",
+        # )
+        #  chat_history_summary, chat_history_summary
+        self.memory = CombinedMemory(memories=[chat_history_buffer, ])
 
 
 TEMPLATE = """
 You are working with a pandas dataframe in Python. The name of the dataframe is `df`.
 
 Summary of the whole conversation:
-{chat_history_summary}
+chat_history_summary
 
 Last few messages between you and user:
 {chat_history_buffer}
 
 Entities that the conversation is about:
-{chat_history_KG}
+chat_history_KG
 
 Your answer should produce valid python code, without any syntax errors \
 and should be executable by python_repl_ast.
@@ -72,7 +72,7 @@ class CliViewer:
         self.df = pd.read_csv(file_name).dropna()
 
         print("getting llm model")
-        _llm = LanguageModelLoader()
+        _llm = LanguageModelLoaderGPU()
         # _llm = OpenAILlm()
         chat_memory = PandasChatMemory(_llm.model)
         #
