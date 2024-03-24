@@ -3,31 +3,31 @@ from langchain.memory import (
     ConversationBufferWindowMemory,
     ConversationSummaryMemory,
     ConversationKGMemory,
-    CombinedMemory, ChatMessageHistory,
-    ConversationBufferMemory
+    CombinedMemory,
+    ChatMessageHistory,
+    ConversationBufferMemory,
 )
 
 from langchain_experimental.agents.agent_toolkits import create_pandas_dataframe_agent
-from prompt_toolkit import HTML, prompt, PromptSession
-from prompt_toolkit.history import FileHistory
 from langchain.agents.agent_types import AgentType
 from langchain.input import get_colored_text
 import pandas as pd
 
-from langchain.callbacks.streaming_stdout_final_only import FinalStreamingStdOutCallbackHandler
+from langchain.callbacks.streaming_stdout_final_only import (
+    FinalStreamingStdOutCallbackHandler,
+)
 from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
-from langchain_experimental.tools import PythonREPLTool
-from langchain_experimental.agents.agent_toolkits.pandas.prompt import SUFFIX_WITH_DF
 
-from ..llm import TinyLlm, OpenAILlm
+from langchain_experimental.tools import PythonAstREPLTool
+
+
+from ..llm import TinyLlm, TinyLlmGPU
 
 
 class PandasChatMemory:
     def __init__(self, llm):
         chat_history_buffer = ConversationBufferWindowMemory(
-            k=5,
-            memory_key="chat_history_buffer",
-            input_key="input"
+            k=5, memory_key="chat_history_buffer", input_key="input"
         )
 
         history = ChatMessageHistory()
@@ -35,7 +35,7 @@ class PandasChatMemory:
             llm=llm,
             memory_key="chat_history_summary",
             input_key="input",
-            chat_memory=history
+            chat_memory=history,
         )
 
         chat_history_KG = ConversationKGMemory(
@@ -44,12 +44,13 @@ class PandasChatMemory:
             input_key="input",
         )
 
-        self.memory = CombinedMemory(memories=[chat_history_buffer, chat_history_summary, chat_history_KG])
+        self.memory = CombinedMemory(
+            memories=[chat_history_buffer,
+                      chat_history_summary, chat_history_KG]
+        )
 
 
-TEMPLATE = """
-You are working with a pandas dataframe in Python. The name of the dataframe is `df`.
-
+"""
 Summary of the whole conversation:
 {chat_history_summary}
 
@@ -59,9 +60,25 @@ Last few messages between you and user:
 Entities that the conversation is about:
 {chat_history_KG}
 
+
+"""
+TEMPLATE = """
+You are working with a pandas dataframe in Python. The name of the dataframe is `df`.
+
 Your answer should be executable by python_repl_ast, and produce valid \
 python code.
-You should use the tools below to answer the question posed of you:
+
+You should use the tools below to answer the question posed of you in the \
+following format:
+
+Question: the input question you must answer
+Thought: you should always think about what to do, what action to take
+Action: python_repl_ast
+Action Input: the input to the action, never add backticks "`" around the action input
+Observation: the result of the action
+... (this Thought/Action/Action Input/Observation can repeat N times)
+Thought: I now know the final answer
+Final Answer: the final answer to the original input question
 """
 
 
@@ -79,16 +96,16 @@ class CliViewer:
         self.agent = create_pandas_dataframe_agent(
             llm=_llm.model,
             df=self.df,
-            # extra_tools=[PythonREPLTool()],
+            extra_tools=[PythonAstREPLTool(locals={"df": self.df})],
             # suffix=SUFFIX_WITH_DF,
             agent_type=AgentType.ZERO_SHOT_REACT_DESCRIPTION,
             prefix=TEMPLATE,
-            early_stopping_method='generate',
-            max_iterations=5,
             include_df_in_prompt=True,
+            early_stopping_method="generate",
+            max_iterations=5,
             agent_executor_kwargs={
-                'handling_parsing_errors': True,
-                'memory': chat_memory.memory,
+                "handling_parsing_errors": True,
+                "memory": chat_memory.memory,
             },
             verbose=True,
         )
@@ -99,7 +116,9 @@ class CliViewer:
         question = "How many matches did Chennai Super Kings win and lose?"
 
         print("invoking agent")
-        result = self.agent.invoke({"input": question}, callbacks=[StreamingStdOutCallbackHandler()])
+        result = self.agent.invoke(
+            {"input": question}, callbacks=[StreamingStdOutCallbackHandler()]
+        )
         print("reesult, ", result)
         print(get_colored_text(result["output"], "green"))
 
