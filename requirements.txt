@@ -6,8 +6,8 @@ streamlit~=1.32.2
 huggingface-hub
 pandas~=2.2.1
 networkx~=3.2.1
-transformers
+torch~=2.2.1
 optimum[onnxruntime]
-accelerate
-bitsandbytes
-pandasai
+transformers~=4.39.1
+accelerate~=0.28.0
+bitsandbytes~=0.42.0
