@@ -9,12 +9,12 @@ from huggingface_hub import hf_hub_download
 from contextlib import contextmanager, redirect_stderr, redirect_stdout
 from os import devnull
 
-from transformers import (
-    AutoModelForCausalLM,
-    AutoTokenizer,
-    BitsAndBytesConfig,
-    pipeline,
-)
+# from transformers import (
+#     AutoModelForCausalLM,
+#     AutoTokenizer,
+#     BitsAndBytesConfig,
+#     pipeline,
+# )
 
 from .st_utils import get_device
 
@@ -87,7 +87,7 @@ class TinyLlm:
             temperature=0,
             callbacks=callback_manager,
             n_batch=20,
-            n_gpu_layers=-1,
+            n_gpu_layers=0,
             streaming=True,
             max_tokens=2048,
             n_ctx=2048,
@@ -97,23 +97,56 @@ class TinyLlm:
 
 
 class TinyLlmGPU:
-    cfg = StarcoderModelConfig()
+    cfg = CodeLlamaModelConfig()
 
-    def __init__(self):
-        cfg = self.cfg
+    # @suppress_error_output
+    def __init__(self, model_name=None, model_file=None):
+        model = self.cfg
 
-        self.tokenizer = AutoTokenizer.from_pretrained(cfg.checkpoint)
-        device = get_device()
+        self.model_name = model.model_name if model_name is None else model_name
+        self.model_file = model.model_file if model_file is None else model_file
+        self.verbose = False
 
-        if device == "cpu" or device == "mps":
-            model = AutoModelForCausalLM.from_pretrained(
-                cfg.checkpoint).to(device)
-        else:
-            q_config = BitsAndBytesConfig(load_in_8bit=True)
-            model = AutoModelForCausalLM.from_pretrained(
-                cfg.checkpoint, quantization_config=q_config
-            )
-            pipe = pipeline("text-generation", model=model,
-                            tokenizer=self.tokenizer)
+        print("getting model", self.model_name)
+        self.model_path = hf_hub_download(
+            self.model_name,
+            filename=self.model_file,
+        )
 
-            self.model = HuggingFacePipeline(pipeline=pipe)
+        callback_manager = [FinalStreamingStdOutCallbackHandler()]
+
+        self.model = LlamaCpp(
+            model_path=self.model_path,
+            temperature=0,
+            callbacks=callback_manager,
+            n_batch=20,
+            n_gpu_layers=30,
+            streaming=True,
+            max_tokens=2048,
+            n_ctx=2048,
+            # context_window=4096,
+            verbose=self.verbose,
+        )
+
+
+# class TinyLlmGPU:
+#     cfg = StarcoderModelConfig()
+#
+#     def __init__(self):
+#         cfg = self.cfg
+#
+#         self.tokenizer = AutoTokenizer.from_pretrained(cfg.checkpoint)
+#         device = get_device()
+#
+#         if device == "cpu" or device == "mps":
+#             model = AutoModelForCausalLM.from_pretrained(
+#                 cfg.checkpoint).to(device)
+#         else:
+#             q_config = BitsAndBytesConfig(load_in_8bit=True)
+#             model = AutoModelForCausalLM.from_pretrained(
+#                 cfg.checkpoint, quantization_config=q_config
+#             )
+#             pipe = pipeline("text-generation", model=model,
+#                             tokenizer=self.tokenizer)
+#
+#             self.model = HuggingFacePipeline(pipeline=pipe)
