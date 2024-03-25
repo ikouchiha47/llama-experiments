@@ -1,10 +1,9 @@
 setup:
-	CMAKE_ARGS="-DLLAMA_METAL=off" pip install llama-cpp-python
+	CMAKE_ARGS="-DLLAMA_METAL_EMBED_LIBRARY=ON -DLLAMA_METAL=on" pip install -U llama-cpp-python --no-cache-dir --force-reinstall
 	pip install -r requirements.txt
 
 setup.gpu:
-	CMAKE_ARGS="-DLLAMA_CUBLAS=on" FORCE_CMAKE=1 pip install llama-cpp-python
-	pip install tensorflow[and-cuda]
+	pip install llama-cpp-python
 	pip install --upgrade -r requirements.txt
 
 read:

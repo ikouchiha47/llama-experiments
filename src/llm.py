@@ -51,10 +51,11 @@ class LlamaChatModelConfig:
 
 
 class CodeLlamaModelConfig:
-    # model_name = "TheBloke/CodeLlama-7B-Python-GGUF"
-    # model_file = "codellama-7b-python.Q5_K_M.gguf"
-    model_name = "TheBloke/CodeLlama-13B-Instruct-GGUF"
-    model_file = "codellama-13b-instruct.Q5_K_S.gguf"
+    model_name = "TheBloke/CodeLlama-7B-Instruct-GGUF"
+    # model_file = "codellama-7b-instruct.Q5_K_M.gguf"
+    model_file = "codellama-7b-instruct.Q4_K_M.gguf"
+    # model_name = "TheBloke/CodeLlama-13B-Instruct-GGUF"
+    # model_file = "codellama-13b-instruct.Q5_K_S.gguf"
 
 
 class StarcoderModelConfig:
@@ -105,7 +106,7 @@ class TinyLlmGPU:
 
         self.model_name = model.model_name if model_name is None else model_name
         self.model_file = model.model_file if model_file is None else model_file
-        self.verbose = False
+        self.verbose = True
 
         print("getting model", self.model_name)
         self.model_path = hf_hub_download(
@@ -119,12 +120,15 @@ class TinyLlmGPU:
             model_path=self.model_path,
             temperature=0,
             callbacks=callback_manager,
-            n_batch=20,
-            n_gpu_layers=30,
+            n_batch=50,
+            n_gpu_layers=5,
+            n_ctx=102400,
             streaming=True,
             max_tokens=2048,
-            n_ctx=2048,
-            # context_window=4096,
+            n_gqa=None,
+            model_kwargs={
+                "context_window": 8192,
+            },
             verbose=self.verbose,
         )
 

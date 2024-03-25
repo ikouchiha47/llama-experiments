@@ -45,7 +45,8 @@ class PandasChatMemory:
         )
 
         self.memory = CombinedMemory(
-            memories=[chat_history_buffer, chat_history_summary, chat_history_KG]
+            memories=[chat_history_buffer,
+                      chat_history_summary, chat_history_KG]
         )
 
 
@@ -84,7 +85,7 @@ Final Answer: the final answer to the original input question
 class CliViewer:
     def __init__(self, file_name):
         self.file_name = file_name
-        self.df = pd.read_csv(file_name).dropna()
+        self.df = pd.read_csv(file_name)
 
         print("getting llm model")
         _llm = TinyLlmGPU()

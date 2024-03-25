@@ -44,3 +44,29 @@ file and load the data into sqlite database. Use the `create_sql_agent`
 [Reference for agent and agent executor](https://python.langchain.com/docs/modules/agents/concepts). In short the agent
 uses the language model to choose a sequence of action to take. And then `agent executor` runs it.
 
+
+## New requirements
+
+Macos with metals gpu:
+
+- conda
+
+```bash
+wget https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-MacOSX-arm64.sh
+conda create -n llama python=3.10
+conda activate llama
+```
+
+On silicon chips make sure metals can be run. Validate using:
+
+```bash
+xcrun metal
+```
+
+Incase it doesn't work, you need to install Xcode and then make `xcode-select
+--print-path` point to `Xcode` 's path:
+
+```
+sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+```
+
