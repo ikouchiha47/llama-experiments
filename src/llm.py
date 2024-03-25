@@ -1,9 +1,9 @@
+import os
 from langchain_community.llms import LlamaCpp
 from langchain.callbacks.streaming_stdout_final_only import (
     FinalStreamingStdOutCallbackHandler,
 )
 
-from langchain_community.llms import HuggingFacePipeline
 
 from huggingface_hub import hf_hub_download
 from contextlib import contextmanager, redirect_stderr, redirect_stdout
@@ -15,8 +15,9 @@ from os import devnull
 #     BitsAndBytesConfig,
 #     pipeline,
 # )
+# from langchain_community.llms import HuggingFacePipeline
 
-from .st_utils import get_device
+# from .st_utils import get_device
 
 
 @contextmanager
@@ -52,8 +53,8 @@ class LlamaChatModelConfig:
 
 class CodeLlamaModelConfig:
     model_name = "TheBloke/CodeLlama-7B-Instruct-GGUF"
-    # model_file = "codellama-7b-instruct.Q5_K_M.gguf"
-    model_file = "codellama-7b-instruct.Q4_K_M.gguf"
+    model_file = "codellama-7b-instruct.Q5_K_M.gguf"
+    # model_file = "codellama-7b-instruct.Q4_K_M.gguf"
     # model_name = "TheBloke/CodeLlama-13B-Instruct-GGUF"
     # model_file = "codellama-13b-instruct.Q5_K_S.gguf"
 
@@ -104,9 +105,13 @@ class TinyLlmGPU:
     def __init__(self, model_name=None, model_file=None):
         model = self.cfg
 
-        self.model_name = model.model_name if model_name is None else model_name
-        self.model_file = model.model_file if model_file is None else model_file
-        self.verbose = True
+        self.model_name = (
+            model.model_name if model_name is None else model_name
+        )  # noqa: e501
+        self.model_file = (
+            model.model_file if model_file is None else model_file
+        )  # noqa: e501
+        self.verbose = os.environ.get("DEBUG") == "true"
 
         print("getting model", self.model_name)
         self.model_path = hf_hub_download(
@@ -122,35 +127,12 @@ class TinyLlmGPU:
             callbacks=callback_manager,
             n_batch=50,
             n_gpu_layers=5,
-            n_ctx=102400,
+            n_ctx=4096,
             streaming=True,
             max_tokens=2048,
-            n_gqa=None,
             model_kwargs={
                 "context_window": 8192,
+                "n_gqa": 8,
             },
             verbose=self.verbose,
         )
-
-
-# class TinyLlmGPU:
-#     cfg = StarcoderModelConfig()
-#
-#     def __init__(self):
-#         cfg = self.cfg
-#
-#         self.tokenizer = AutoTokenizer.from_pretrained(cfg.checkpoint)
-#         device = get_device()
-#
-#         if device == "cpu" or device == "mps":
-#             model = AutoModelForCausalLM.from_pretrained(
-#                 cfg.checkpoint).to(device)
-#         else:
-#             q_config = BitsAndBytesConfig(load_in_8bit=True)
-#             model = AutoModelForCausalLM.from_pretrained(
-#                 cfg.checkpoint, quantization_config=q_config
-#             )
-#             pipe = pipeline("text-generation", model=model,
-#                             tokenizer=self.tokenizer)
-#
-#             self.model = HuggingFacePipeline(pipeline=pipe)
