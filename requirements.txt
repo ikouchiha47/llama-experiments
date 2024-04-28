@@ -1,0 +1,8 @@
+langchain
+langchain-community
+langchain-experimental
+streamlit
+llama-cpp-python
+huggingface_hub
+numexpr
+duckduckgo-search
