@@ -4,13 +4,14 @@ from langchain_core.prompts import (
 from langchain_community.chat_message_histories.streamlit import (
     StreamlitChatMessageHistory,
 )
+from langchain_core.output_parsers import StrOutputParser
 
 
 # from langchain_core.runnables.history import RunnableWithMessageHistory
 
 import streamlit as st
 
-from streamlit_agent.llm import ClosedAI
+from streamlit_agent.llm import KoderModel, ClosedAI
 
 st.set_page_config(page_title="StreamlitChatMessageHistory", page_icon="📖")
 st.title("📖 StreamlitChatMessageHistory")
@@ -27,6 +28,7 @@ template = """
 You are a coding assistant, producing valid python code.
 Do not reframe the question and answer in the format of the question.
 Wrap the code in three backticks.
+Provide explanation for the answer.
 <</SYS>>
 
 [/INST]
@@ -37,7 +39,7 @@ Assistant:
 q_prompt = PromptTemplate.from_template(template=template)
 
 
-chain = q_prompt | ClosedAI().llm
+chain = q_prompt | ClosedAI(KoderModel).llm | StrOutputParser()
 
 # Render current messages from StreamlitChatMessageHistory
 for msg in msgs.messages:
@@ -48,7 +50,7 @@ if prompt := st.chat_input():
     st.chat_message("human").write(prompt)
     config = {"configurable": {"session_id": "any"}}
     if prompt is not None:
-        response = chain.stream({"input": prompt})
+        response = chain.invoke({"input": prompt})
         st.chat_message("ai").write(response)
 
 # Draw the messages at the end, so newly generated ones show up immediately

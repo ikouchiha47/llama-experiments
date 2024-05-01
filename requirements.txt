@@ -6,3 +6,7 @@ llama-cpp-python
 huggingface_hub
 numexpr
 duckduckgo-search
+watchdog
+pypdf
+sentence-transformers
+faiss-cpu
