@@ -1,4 +1,5 @@
 from os import devnull
+import os
 from langchain_community.llms import LlamaCpp
 from langchain_core.callbacks import (
     CallbackManager,
@@ -27,18 +28,25 @@ def suppress_error_output(func):
     return wrapper
 
 
+# model = "TheBloke/CodeLlama-7B-Python-GGUF"
+# filename = "codellama-7b-python.Q4_K_M.gguf"
+# filename = "codellama-7b-python.Q3_K_S.gguf"
+# model = "TheBloke/CodeLlama-7B-Instruct-GGUF"
+# filename = "codellama-7b-instruct.Q4_K_M.gguf"
+
+# model = "Qwen/CodeQwen1.5-7B-Chat-GGUF"
+# filename = "codeqwen-1_5-7b-chat-q4_k_m.gguf"
+
+
 class ClosedAI:
-    # model = "TheBloke/CodeLlama-7B-Python-GGUF"
-    # filename = "codellama-7b-python.Q4_K_M.gguf"
-    # filename = "codellama-7b-python.Q3_K_S.gguf"
-    model = "TheBloke/CodeLlama-7B-Instruct-GGUF"
-    filename = "codellama-7b-instruct.Q4_K_M.gguf"
+    model = "second-state/StarCoder2-7B-GGUF"
+    filename = "starcoder2-7b-Q4_K_M.gguf"
 
     @suppress_error_output
     def __init__(self):
         callback_manager = CallbackManager([StreamingStdOutCallbackHandler()])
 
-        self.model_path = hf_hub_download(self.model, filename=self.filename)
+        self.model_path: str = hf_hub_download(self.model, filename=self.filename)
 
         self.llm = LlamaCpp(
             model_path=self.model_path,  # noqa: e501
@@ -49,5 +57,6 @@ class ClosedAI:
             top_p=1,
             callback_manager=callback_manager,
             verbose=False,
+            stop=["Human:"],
             # Verbose is required to pass to the callback manager
         )
