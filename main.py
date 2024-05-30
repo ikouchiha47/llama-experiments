@@ -70,10 +70,7 @@ chain = (
 )
 
 
-chain.invoke(
-    "Can you group them by similarity and figure out the categories or classifications? \
-    Each category or classification should have at most 10 results."
-)
+chain.invoke("List 8 problems from each sub category of Binary Search problems")
 
 # for chunk in chain.stream(invoke_args):
 # print(chunk, end="", flush=True)

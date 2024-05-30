@@ -54,20 +54,33 @@ class OneShot:
 class OneShotChat:
     def __init__(self):
         prompt_template = """
-        <s>[INST] You are given a list of problems. You are to:
-        1. Carefully read the list of problems provided
-        2. Identify the similarities among problems
-        3. Define clear and distinct classifications based on the identified similarities
-        4. Group the problems into the defined classification, ensuring each category has at most 10 problems and at least 2.
-        5. Review and refine the groups and categories for more accuracy.
+        <s>[INST] You are given a list of problems that belong to {category} category. Your task is to create sub categories by:
+        - Identifying the similarities among problems
+        - Define clear and distinct classifications based on the identified similarities
+        - Sub Group the problems into these defined classification.
         
-        and answer the question based on the provided context
+        and answer the question based on the provided context.
 
         Problems:
         {problems}
 
         Context:
         {context}
+
+
+        Example answers:
+        # Basic Binary Search
+        - 1. Binary Search
+        - Guess Number Higher or Lower
+
+        # Rotated Sorted Array
+        - Search in Rotated Sorted Array
+        - Find Minimum in Rotated Sorted Array II
+
+        # Minimum and Maximum Search
+        - Minimize Max Distance to Gas Station
+        - Max Sum of Rectangle No Larger Than K
+
 
         Question: {question} [/INST]
         """
