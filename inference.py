@@ -15,6 +15,11 @@ def panic():
     sys.exit(1)
 
 
+embeddings = HuggingFaceEmbeddings(
+    model_name="all-MiniLM-L6-v2",
+)
+
+
 def configure_retriever():
     print("embedding start")
     loader = TextLoader("./problems/binary-search.txt")
@@ -25,9 +30,7 @@ def configure_retriever():
         chunk_overlap=0,
     )
     splits = text_splitter.split_documents(docs)
-    embeddings = HuggingFaceEmbeddings(
-        model_name="all-MiniLM-L6-v2",
-    )
+
     vectordb = FAISS.from_documents(
         [split for split in splits],
         embeddings,

@@ -4,3 +4,5 @@ langchain-experimental
 llama-cpp-python
 huggingface_hub
 sentence-transformers
+faiss-cpu
+flask
