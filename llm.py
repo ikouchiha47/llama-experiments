@@ -33,7 +33,7 @@ class ClosedAI:
     # modelname = "microsoft/Phi-3-mini-4k-instruct-gguf"
     # filename = "Phi-3-mini-4k-instruct-q4.gguf"
 
-    # @suppress_error_output
+    @suppress_error_output
     def __init__(self):
         callback_manager = CallbackManager([StreamingStdOutCallbackHandler()])
 

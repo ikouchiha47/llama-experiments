@@ -23,7 +23,6 @@ def configure_retriever():
         separator="\n",
         chunk_size=1000,
         chunk_overlap=0,
-        # chunk_overlap=10,
     )
     splits = text_splitter.split_documents(docs)
     embeddings = HuggingFaceEmbeddings(
@@ -70,9 +69,4 @@ chain = (
 )
 
 
-chain.invoke("List 8 problems from each sub category of Binary Search problems")
-
-# for chunk in chain.stream(invoke_args):
-# print(chunk, end="", flush=True)
-
-## Second we will try TextLoader
+chain.invoke("List all the problems and sub categories of Binary Search problems")
