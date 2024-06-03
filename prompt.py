@@ -76,16 +76,10 @@ You are given a list of {category} problems. Your task is to categorize by:
 Answer the user query based on the provided problems statements."""
 
         self.user_prompt = """Question:
-Here are the list of problems statements (separated by new lines):
+Here are the list of {category} problem statements (separated by new lines):
 {problems}
 
 {question}."""
-
-        prompt_template = f"""<|begin_of_text|><|start_header_id|>system<|end_header_id|>
-{self.system_prompt}<|eot_id|>
-<|start_header_id|>user<|end_header_id|>
-{self.user_prompt}<|eot_id|>
-"""
 
         prompt_template = f"""{self.system_prompt}
 {self.user_prompt}

@@ -23,7 +23,7 @@ embeddings = gpt.embeddings
 
 
 def configure_retriever():
-    print("embedding start")
+    # print("embedding start")
     loader = TextLoader("./problems/binary-search.txt")
     docs = loader.load()
     text_splitter = CharacterTextSplitter(
@@ -41,7 +41,7 @@ def configure_retriever():
         search_type="mmr", search_kwargs={"k": 2, "fetch_k": 4}
     )
 
-    print("embedding end")
+    # print("embedding end")
     return retriever
 
 
@@ -79,9 +79,10 @@ chain = (
 #     | prompter.parser
 # )
 
-question = "List all the problems and sub categories of Binary Search problems"
+question = "List all the categories and a couple of problem statements for the given Binary Search problems"
 print(question)
 
 print(prompter.prompt.format(question=question))
 
-print(chain.invoke(question, stop=["<|eot_id|>"]))
+print(chain.invoke(question))
+# , stop=["<|eot_id|>"]))

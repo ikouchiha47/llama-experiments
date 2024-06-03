@@ -6,6 +6,10 @@
 // ==/UserScript==
 
 function LitKodeClassifier() {
+  function $$(el) {
+  	return document.querySelectorAll(el)
+  }
+  
   function getTagName() {
     return window.location.pathname.replace("/tag/", "").replace("/", "").replace("-", "_")
   }
@@ -89,7 +93,7 @@ function LitKodeClassifier() {
   async function categorize(tag) {
     let req = await makeRequest();
 
-    query = `Categorize the ${tag} problems into sub categories based on similarity`
+    query = `List all the categories and a couple of problem statements for the given {tag} problems`
     await getInferenceStream(query)
   }
 

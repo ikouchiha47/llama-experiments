@@ -76,4 +76,4 @@ class OllamaAPIAI:
 class OllamaAI:
     def __init__(self):
         self.model = Ollama(model="llama3")
-        self.embeddings = OllamaEmbeddings(model="llama3:8b")
+        self.embeddings = OllamaEmbeddings(model="llama3")
