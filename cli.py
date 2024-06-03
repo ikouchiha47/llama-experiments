@@ -1,10 +1,9 @@
 from langchain_core.runnables import RunnablePassthrough
 from langchain_text_splitters import CharacterTextSplitter
-from llm import ClosedAI
+from llm import ClosedAI, OllamaAI
 from langchain_community.document_loaders import TextLoader
-from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
-from langchain_core.output_parsers import StrOutputParser
+# from langchain_core.output_parsers import StrOutputParser
 
 from prompt import OneShotChat
 
@@ -15,9 +14,12 @@ def panic():
     sys.exit(1)
 
 
-embeddings = HuggingFaceEmbeddings(
-    model_name="all-MiniLM-L6-v2",
-)
+prompter = OneShotChat()
+
+# gpt = ClosedAI()
+# gpt = OllamaAI(prompter)
+gpt = OllamaAI()
+embeddings = gpt.embeddings
 
 
 def configure_retriever():
@@ -43,33 +45,43 @@ def configure_retriever():
     return retriever
 
 
-with open("./problems/binary-search.txt") as f:
+filename = "./problems/binary-search.txt"
+title = "Binary Search"
+
+with open(filename) as f:
     problem_list = f.read().strip().split(",")
 
 
 problem_list = "\n".join(map(lambda x: x.strip('"'), problem_list))
-prompter = OneShotChat()
-
-
-gpt = ClosedAI()
-
-# ## try chain
-# chain = prompter.prompt | gpt.model
-
-retriever = configure_retriever()
+prompter = prompter.partial(title, problem_list)
 
 
 chain = (
     {
-        "context": retriever,
         "question": RunnablePassthrough(),
-        "problems": lambda _: problem_list,
-        "category": lambda _: "Binary Search",
     }
     | prompter.prompt
     | gpt.model
-    | StrOutputParser()
+    | prompter.parser
 )
 
 
-chain.invoke("List all the problems and sub categories of Binary Search problems")
+# retriever = configure_retriever()
+# chain = (
+#     {
+#         "context": retriever,
+#         "question": RunnablePassthrough(),
+#         "problems": lambda _: problem_list,
+#         "category": lambda _: "Binary Search",
+#     }
+#     | prompter.prompt
+#     | gpt.model
+#     | prompter.parser
+# )
+
+question = "List all the problems and sub categories of Binary Search problems"
+print(question)
+
+print(prompter.prompt.format(question=question))
+
+print(chain.invoke(question, stop=["<|eot_id|>"]))

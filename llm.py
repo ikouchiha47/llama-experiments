@@ -1,12 +1,18 @@
 import os
+from langchain_community.embeddings import HuggingFaceEmbeddings, OllamaEmbeddings
 from langchain_community.llms import LlamaCpp
 from langchain_core.callbacks import (
     CallbackManager,
     StreamingStdOutCallbackHandler,
 )  # noqa: e501
 
+import ollama as ollama3
+from langchain_community.llms import Ollama
+
 from huggingface_hub import hf_hub_download
 from contextlib import contextmanager, redirect_stderr, redirect_stdout
+
+from prompt import OneShotChat
 
 # model_path = "TheBloke/WizardCoder-Python-7B-V1.0-GGUF"
 # filename = "wizardcoder-python-7b-v1.0.Q4_K_M.gguf"
@@ -38,7 +44,9 @@ class ClosedAI:
         callback_manager = CallbackManager([StreamingStdOutCallbackHandler()])
 
         self.model_path: str = hf_hub_download(self.modelname, filename=self.filename)
-
+        self.embeddings = HuggingFaceEmbeddings(
+            model_name="all-MiniLM-L6-v2",
+        )
         self.model = LlamaCpp(
             model_path=self.model_path,  # noqa: e501
             temperature=0.1,
@@ -53,3 +61,19 @@ class ClosedAI:
             # stop=["<|endoftext|>"],
             # Verbose is required to pass to the callback manager
         )
+
+
+class OllamaAPIAI:
+    def __init__(self, prompter: OneShotChat):
+        self.prompter = prompter
+        self.embeddings = OllamaEmbeddings(model="llama3:8b")
+
+    def invoke(self, question):
+        prompt = self.prompter.prompt.format(question=question)
+        return ollama3.generate(model="llama3", prompt=prompt)
+
+
+class OllamaAI:
+    def __init__(self):
+        self.model = Ollama(model="llama3")
+        self.embeddings = OllamaEmbeddings(model="llama3:8b")
