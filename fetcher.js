@@ -57,9 +57,22 @@ function LitKodeClassifier() {
       catch(e => ({error: e}))
 
   }
+  
+  let lastLogTime = 0;
+  const logInterval = 100; // Time in ms to debounce
+
+  const debouncedLog = (output) => {
+    const now = Date.now();
+    if (now - lastLogTime > logInterval) {
+      console.clear();
+      console.log(output);
+      lastLogTime = now;
+    }
+  };
 
   async function getInferenceStream(query) {
     let tagName = getTagName()
+	lastLogTime = 0;
 
     let response = await fetch(
       `http://localhost:5000/api/litkode/stream/${tagName}?query=${query}`
@@ -83,11 +96,12 @@ function LitKodeClassifier() {
 
       const chunk = decoder.decode(value, { stream: true });
       outputElement += chunk;
-      console.clear()
-      console.log(outputElement)
+//       console.clear()
+//       console.log(outputElement)
+      	 debouncedLog(outputElement)
     }
+    
 
-    console.log(outputElement)
   }
 
   async function categorize(tag) {

@@ -6,6 +6,9 @@ from langchain_core.callbacks import (
     StreamingStdOutCallbackHandler,
 )  # noqa: e501
 
+from langchain.globals import set_llm_cache
+from langchain_community.cache import InMemoryCache
+
 import ollama as ollama3
 from langchain_community.llms import Ollama
 
@@ -61,6 +64,7 @@ class ClosedAI:
             # stop=["<|endoftext|>"],
             # Verbose is required to pass to the callback manager
         )
+        set_llm_cache(InMemoryCache())
 
 
 class OllamaAPIAI:
@@ -77,3 +81,5 @@ class OllamaAI:
     def __init__(self):
         self.model = Ollama(model="llama3")
         self.embeddings = OllamaEmbeddings(model="llama3")
+
+        set_llm_cache(InMemoryCache())
