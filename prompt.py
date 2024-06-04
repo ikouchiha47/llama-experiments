@@ -59,16 +59,20 @@ class ExampleProblem:
 class OneShotCode:
     def __init__(self, default_lang="Javascript"):
         self.system_prompt = textwrap.dedent("""
-        You are an expert programmer that writes simple, concise code and explanations.
-        Provide solutions for the problem statement with optimized time complexity for a Problem statement and efficient code in the programming language specified in the Question. In case nothing is specified use {default_lang}.
+        You are an expert programmer that writes simple, concise, optimized code and concise explanations covering edge cases.
+        Provide solutions for the Problem statement and efficient code in the programming language specified in the Question. In case nothing is specified use {default_lang}.
         - The code should have a valid syntax.
         - The code should be wrapped inside ``` and ```.
-        - The code should be DRY enough, extracting common code into separate functions.
-        - Each function should do one thing and one thing well
-        - The code should also respect principle of locality, accounting for CPU cache locality 
+        - The code should have short 1 to 2 line comments where needed
+        - Extract common functionality into separate functions.
+        - Each function should do one thing and one thing well.
+        - The answer should specify the time complexity.
+        - Your explanation should summarize the solution and choice of data structure and algorithm.
+        - The calculations using your approach must match the Expected Output for Example input if provided.
+        - Do NOT explain step by step.
+        - Do NOT makeup functions and libraries that are not present in the language.
         - Do NOT cite sources for solution.
-        - Do NOT modify the Problem Statement
-        - The answer should specify the time complexity
+        - Do NOT modify the Problem Statement.
         """).format(default_lang=default_lang)
 
         self.user_prompt = textwrap.dedent("""\
