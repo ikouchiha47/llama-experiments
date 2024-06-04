@@ -1,6 +1,6 @@
 from langchain_core.runnables import RunnablePassthrough
 from langchain_text_splitters import CharacterTextSplitter
-from llm import ClosedAI, OllamaAI
+from llm import OllamaAI
 from langchain_community.document_loaders import TextLoader
 from langchain_community.vectorstores import FAISS
 # from langchain_core.output_parsers import StrOutputParser

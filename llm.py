@@ -83,3 +83,11 @@ class OllamaAI:
         self.embeddings = OllamaEmbeddings(model="llama3")
 
         set_llm_cache(InMemoryCache())
+
+
+class CodellamaAI:
+    def __init__(self):
+        self.model = Ollama(model="codellama:7b-instruct")
+        self.embeddings = OllamaEmbeddings(model="llama3")
+
+        set_llm_cache(InMemoryCache())

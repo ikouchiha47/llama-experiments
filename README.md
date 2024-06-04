@@ -12,12 +12,12 @@ A classifier for algorithmic questions.
 ### Ollama
 
 - Install from [https://ollama.com/download](https://ollama.com/download).
-- Install llama3 using, `ollama run llama3`
+- Install llama3 using, `ollama pull llama3`
+- Optional, `ollama pull codellama:7b-instruct`
 - This should also start the inference server at `http://localhost:11434/`
 - GreaseMonkey/TamperMonkey depending on firefox or chrome
 
 You can check with `curl http://localhost:11434` or `sudo lsof -i :11434`
-
 
 **Langchain Ollama Defaults**
 
@@ -68,6 +68,27 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ./api.py
 ```
+
+### Coding help
+
+**cli only, and needs codellama:7b-instruct**
+
+Given a problem statement file structured like so:
+```
+----Problem
+<problem-statement>
+----Input
+<input>
+----Output
+<output>
+----Explain
+<explanation of solution>
+```
+Run, `python3 run kode.py ./path-to-above-file '<additional question>'`. An example has been provided, run it like:
+```
+python3 kode.py ./problems/statements/l84.txt 'use stack'
+```
+
 
 Frontend Setup
 
