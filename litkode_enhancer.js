@@ -13,7 +13,7 @@ function getTagName() {
   return window.location.pathname.replace("/tag/", "").replace("/", "").replace("-", "_")
 }
 
-const MAX_LOOP = 20
+let MAX_LOOP = 20
 
 function waitTill(fn, comp, cb) {
 	let loopCount = 0;
@@ -40,14 +40,20 @@ function waitTill(fn, comp, cb) {
   }, 1000)
 }
 
+const LeetcodeData = {
+  problems: [],
+  other: {}
+}
 
 function ProblemEnhancer() {
+  let store = {...LeetcodeData}
   
   function getProblemList() {
-    return Array.from($$(".reactable-data tr"))
-  }
+  	return Array.from($$(".reactable-data tr"))
+	}
 
-  var Problem = {idx: -1, value: undefined, marked: false, el: undefined }
+  var Problem = {idx: -1, value: undefined, marked: false, el: undefined };
+  
   var newProblem = (args) => {
     return {...Problem, ...(args ||{})}
   }
@@ -55,7 +61,7 @@ function ProblemEnhancer() {
   function indexProblemSet(problems) {
     return problems.map((problem, idx) => { 
       let el = problem.querySelector("td[label='#']");
-      return newProblem({idx: idx, value: Number(el.innerText), el: el})
+      return newProblem({idx: idx, value: Number(el.innerText), el: el});
     })
   }
 
@@ -65,10 +71,14 @@ function ProblemEnhancer() {
 
 
   function getSaveProblemSet(key, args) {
-    let savedData = JSON.parse(localStorage.getItem(`leetcode_${key}`) || "[]")  
-    if(!args) return savedData;
+    if(store.problems.length > 0) return store;
+    
+    let savedData = JSON.parse(localStorage.getItem(`leetcode_${key}`) || `{"problems": "[]", "other": "{}"}`)
+    if(!args) return {...LeetcodeData, ...savedData};
+    
+    store = savedData;
 
-    return findProblem(savedData, args)
+    return findProblem(savedData.problems, args)
   }
 
   function saveProblemState(key, problem) {
@@ -77,11 +87,11 @@ function ProblemEnhancer() {
     // check if problem set is present, then update it
     // since, we are using a map, and not filtering it
     // the array index is the index itself
-    let oldProblem = savedData[problem.idx];
+    let oldProblem = savedData.problems[problem.idx];
     if(oldProblem) {
-      savedData[problem.idx] = {...oldProblem, value: problem.value, marked: problem.marked}
+      savedData.problems[problem.idx] = {...oldProblem, value: problem.value, marked: problem.marked}
     } else {
-      savedData[problem.idx] = {idx: problem.idx, value: problem.value, marked: problem.marked}
+      savedData.problems[problem.idx] = {idx: problem.idx, value: problem.value, marked: problem.marked}
     }
 
     localStorage.setItem(`leetcode_${key}`, JSON.stringify(savedData))
@@ -97,13 +107,14 @@ function ProblemEnhancer() {
   
   function attachStylesAndHandlers(key, savedData, problemElms) {
     let indexedProblems = indexProblemSet(problemElms);
+   
     let setStyle = (el) => {
       let style = `background: ${el.dataset.marked == "true" ? "#d1ffa3" : "white"}`
       el.style =style;  
     }
 
     problemElms.forEach((el, idx) => {
-      console.log("idx", idx, el);
+      // console.log("idx", idx, el);
       
       el.addEventListener('click', () => {
           let marked = el.dataset.marked;
@@ -125,7 +136,7 @@ function ProblemEnhancer() {
         let problem = indexedProblems.find(p => p.value == data.value);
         let el = problem.el;
 
-        console.log(el);
+        //console.log(el);
 
         el.dataset.marked = ''+(data.marked || false);
         return el
@@ -134,7 +145,8 @@ function ProblemEnhancer() {
 
 
   function fireUp(key) {
-    let problems = getSaveProblemSet(key);
+    let data = getSaveProblemSet(key);
+    let problems = data.problems;
     
     waitTill(getProblemList, (values) => [values, values && values.length > 0], (err, values) => {
       if(err == null)
@@ -145,14 +157,78 @@ function ProblemEnhancer() {
     
   }
   
+  function getDifficulty(key) {
+    let data = getSaveProblemSet(key);
+    let prevDifficulty = (data.other && data.other.difficulty) || "none";
+    
+    let diffcultClasses = [...$("th.reactable-th-difficulty").classList];
+    let difficulty = diffcultClasses.find(el => el.match("desc")) || diffcultClasses.find(el => el.match("asc")) || "none";
+    
+    return [prevDifficulty, difficulty];
+  }
+  
+  
+  function storeDifficulty(key, difficulty) {
+    let data = getSaveProblemSet(key);
+    data.other.difficulty = difficulty;
+    
+    localStorage.setItem(`leetcode_${key}`, JSON.stringify(data))    
+  }
+  
+  
+  function handleDifficulty(e, key) {
+  	let target = e.target
+    
+    if(!target) return;
+    
+    let [prev, present] = getDifficulty(key);
+    if(present == "none") present="desc"
+    
+    if(prev != present) storeDifficulty(key, present);
+  }
+  
+  function setPrevDifficulty(el, key) {
+  	let [prev, present] = getDifficulty(key);
+    if(present != "none" || prev == "none" || prev == present) {
+    	return
+    }
+    
+    // toggle asc desc
+    if(prev == "desc") {
+    	el.click()
+    } else if(prev == "asc") {
+    	el.click();
+      setTimeout(() =>  el.click(), 2000);
+    }
+ 	}
+  
+  function trackDifficulty(key) {
+  	waitTill(
+      () => {
+      	return $("th.reactable-th-difficulty")
+      },
+      (el) => ([el, !!el]),
+      (err, el) => {
+      	if(err == null) {
+          $("th.reactable-th-difficulty").addEventListener('click', (e) => handleDifficulty(e, key));
+          setPrevDifficulty($("th.reactable-th-difficulty"), key)
+        }
+        else
+          console.log("error ", err)
+      },
+    )
+  }
+  
   return {
     fireUp: fireUp,
     getProblemList: getProblemList,
+    trackDifficulty:trackDifficulty,
   }
 }
 
 window.addEventListener("load",() => {
   let enhancer = new ProblemEnhancer();
   enhancer.fireUp(getTagName());
+  enhancer.trackDifficulty(getTagName());
 })
     
