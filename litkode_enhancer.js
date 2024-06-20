@@ -13,11 +13,39 @@ function getTagName() {
   return window.location.pathname.replace("/tag/", "").replace("/", "").replace("-", "_")
 }
 
+const MAX_LOOP = 20
+
+function waitTill(fn, comp, cb) {
+	let loopCount = 0;
+  let interval = setInterval(() => {
+    let [values, ok] = comp(fn())
+    // console.log(values, ok, "running")
+  
+  	if(ok) {
+      // console.log("result received")
+      clearInterval(interval)
+      cb(null, values);
+      return
+    }
+    
+    if(loopCount == MAX_LOOP) {
+      // console.log("exit")
+    	clearInterval(interval);
+      cb("max loop", values);
+      return
+    }
+    
+    loopCount += 1;
+    
+  }, 1000)
+}
+
+
 function ProblemEnhancer() {
   
   function getProblemList() {
-  	return Array.from($$(".reactable-data tr"))
-	}
+    return Array.from($$(".reactable-data tr"))
+  }
 
   var Problem = {idx: -1, value: undefined, marked: false, el: undefined }
   var newProblem = (args) => {
@@ -92,7 +120,7 @@ function ProblemEnhancer() {
     })
 
     savedData.
-      filter(data => indexedProblems[data.idx].value).
+      filter(data => data && indexedProblems[data.idx] && indexedProblems[data.idx].value).
       map(data => {
         let problem = indexedProblems.find(p => p.value == data.value);
         let el = problem.el;
@@ -107,7 +135,14 @@ function ProblemEnhancer() {
 
   function fireUp(key) {
     let problems = getSaveProblemSet(key);
-    attachStylesAndHandlers(key, problems, getProblemList());
+    
+    waitTill(getProblemList, (values) => [values, values && values.length > 0], (err, values) => {
+      if(err == null)
+      	attachStylesAndHandlers(key, problems, values);
+      else
+        console.log("error", err)
+    });
+    
   }
   
   return {
